@@ -19,7 +19,18 @@ DEBUG=False
 ALLOWED_HOSTS=your-app-domain.onrender.com
 CSRF_TRUSTED_ORIGINS=https://your-app-domain.onrender.com
 DATABASE_URL=your-postgres-database-url
+CLOUDINARY_URL=cloudinary://your-api-key:your-api-secret@your-cloud-name
 ```
+
+You can use `CLOUDINARY_URL` by itself. If you do not use `CLOUDINARY_URL`, set all three variables instead:
+
+```bash
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+Uploads made through Django admin are stored in Cloudinary. Render does not keep local uploaded files permanently, so do not rely on `/media/` local storage in production.
 
 Build command:
 
