@@ -1,0 +1,165 @@
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Receipt</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #0f172a;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .receipt {
+            max-width: 420px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.6);
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .line {
+            border-top: 1px dashed #999;
+            margin: 10px 0;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .total {
+            font-size: 20px;
+            font-weight: bold;
+            color: #22c55e;
+            text-align: center;
+        }
+
+        .status {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .pending { background: red; color: white; }
+        .preparing { background: orange; color: white; }
+        .ready { background: blue; color: white; }
+        .completed { background: green; color: white; }
+
+        .btn-custom {
+            border-radius: 10px;
+            padding: 10px;
+        }
+        @media (max-width: 520px) {
+            .receipt { margin: 20px 12px; padding: 20px; }
+            .item-row { flex-wrap: wrap; gap: 8px; }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="receipt">
+
+    <h4 class="title">🍽 MARK'S FOOD CORNER MENU</h4>
+    <p class="text-center">Official Receipt</p>
+
+    <div class="line"></div>
+
+    <!-- HEADER -->
+    <p><strong>Order ID:</strong> {{order.id}}</p>
+    <p><strong>Date:</strong> {{order.created|localtime|date:"F j, Y, g:i a"}}</p>
+    <p><strong>Service:</strong> {{ order.service_type }}</p>
+    {% if order.pickup_time %}
+        <p><strong>Pickup time:</strong> {{ order.pickup_time }}</p>
+    {% endif %}
+    {% if order.delivery_note %}
+        <p><strong>Special requests:</strong> {{ order.delivery_note }}</p>
+    {% endif %}
+    {% if order.delivery_address %}
+        <p><strong>Delivery address:</strong> {{ order.delivery_address }}</p>
+    {% endif %}
+
+    <p>
+        <strong>Status:</strong>
+        {% if order.status == "Completed" %}
+            <span class="status completed">✔ {{order.status}}</span>
+        {% elif order.status == "Preparing" %}
+            <span class="status preparing">🍳 {{order.status}}</span>
+        {% elif order.status == "Ready" %}
+            <span class="status ready">🔔 {{order.status}}</span>
+        {% else %}
+            <span class="status pending">⏳ {{order.status}}</span>
+        {% endif %}
+    </p>
+
+    <p><strong>Cashier:</strong> Mark's Food Corner</p>
+
+    <div class="line"></div>
+
+    <!-- ITEMS -->
+    {% for i in items %}
+    <div class="item-row">
+        <span>
+            {{i.food.name}} x {{i.quantity}}
+            {% if i.flavor_choice %}
+                <small>({{ i.flavor_choice }})</small>
+            {% endif %}
+        </span>
+        <span>₱{{i.subtotal|floatformat:2}}</span>
+    </div>
+    {% endfor %}
+
+    <div class="line"></div>
+
+    <!-- TOTAL -->
+    <p><strong>Subtotal:</strong> ₱{{ order.subtotal|floatformat:2 }}</p>
+    <p><strong>Delivery Fee:</strong> ₱{{ order.delivery_fee|floatformat:2 }}</p>
+    {% if order.promo_code %}
+        <p><strong>Promo code:</strong> {{ order.promo_code }}</p>
+    {% endif %}
+    <p><strong>Discount:</strong> -₱{{ order.discount|floatformat:2 }}</p>
+    <div class="total">
+        Total: ₱{{order.total}}
+    </div>
+
+    <p class="text-center mt-2">Payment: {{order.payment_method}} - {{ order.payment_status }}</p>
+
+    <div class="line"></div>
+
+    <p class="text-center">Thank you for your order! ❤️</p>
+
+    <!-- BUTTONS -->
+    <button onclick="window.print()" class="btn btn-dark btn-custom w-100 mt-2">
+        🧾 Print Receipt
+    </button>
+
+    <a href="/track/{{ order.id }}/" class="btn btn-success btn-custom w-100 mt-2">
+        Track Order
+    </a>
+
+    <a href="/" class="btn btn-secondary btn-custom w-100 mt-2">
+        ⬅ Back to Menu
+    </a>
+
+</div>
+
+<!-- 🔥 REAL-TIME AUTO REFRESH -->
+<script>
+setInterval(() => {
+    location.reload();
+}, 3000);
+</script>
+
+</body>
+</html>

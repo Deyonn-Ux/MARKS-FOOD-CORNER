@@ -1,0 +1,326 @@
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Delivery Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background: #0b1220;
+            color: #f8fafc;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .order-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 18px 44px rgba(0,0,0,0.28);
+        }
+        .rider-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #182235 50%, #2a1607 100%);
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+        .rider-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .rider-stat {
+            background: rgba(15, 23, 42, 0.74);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .rider-stat strong {
+            display: block;
+            font-size: 1.45rem;
+            line-height: 1;
+            color: #fbbf24;
+        }
+        .rider-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .rider-actions .btn,
+        .rider-actions form {
+            width: 100%;
+        }
+        .rider-actions form .btn {
+            width: 100%;
+            min-height: 38px;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .status-pending { background: #facc15; color: #111827; }
+        .status-preparing { background: #2563eb; color: white; }
+        .status-ready { background: #14b8a6; color: white; }
+        .status-on-the-way { background: #ef4444; color: white; }
+        .status-delivered { background: #22c55e; color: white; }
+        .status-completed { background: #0f766e; color: white; }
+        .status-cancelled { background: #475569; color: white; }
+        .muted { color: #94a3b8; }
+        .badge-custom {
+            background: rgba(248, 113, 20, 0.16);
+            color: #fbbf24;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .form-control, .form-select {
+            background: #111827;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 0.2rem rgba(245, 158, 11, 0.25);
+        }
+        .customer-map-wrap {
+            display: none;
+            margin-top: 14px;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #020617;
+        }
+        .customer-map-wrap.active {
+            display: block;
+        }
+        .customer-map {
+            width: 100%;
+            height: 220px;
+        }
+        .map-note {
+            padding: 8px 10px;
+            border-top: 1px solid #1f2937;
+            color: #cbd5e1;
+            font-size: 0.82rem;
+        }
+        @media (max-width: 900px) {
+            .card-grid { grid-template-columns: 1fr; }
+            .rider-stats { grid-template-columns: 1fr; }
+            .rider-actions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="topbar">
+        <div>
+            <h1 class="h3 mb-1">Rider Delivery View</h1>
+            <p class="muted mb-0">Customer route, contact details, and delivery status controls.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/" class="btn btn-outline-light">Menu</a>
+            <a href="/logout/" class="btn btn-warning">Logout</a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} bg-white text-dark mb-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="rider-hero">
+        <span class="badge-custom">Rider mode active</span>
+        <h2 class="h4 mt-3 mb-2">Today's delivery queue</h2>
+        <p class="muted mb-0">Use each card to view the customer map, open the full route, or quickly update the delivery status.</p>
+        <div class="rider-stats">
+            <div class="rider-stat">
+                <span class="muted">Active orders</span>
+                <strong>{{ orders|length }}</strong>
+            </div>
+            <div class="rider-stat">
+                <span class="muted">Pickup point</span>
+                <strong>MFC</strong>
+            </div>
+            <div class="rider-stat">
+                <span class="muted">Role</span>
+                <strong>Rider</strong>
+            </div>
+        </div>
+    </div>
+
+    {% if orders %}
+        <div class="card-grid">
+            {% for order in orders %}
+                <div class="order-card">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">Order #{{ order.id }}</h2>
+                            <div class="muted">Placed {{ order.created|localtime|date:"M d, g:i a" }}</div>
+                        </div>
+                        <span class="status-pill status-{{ order.status|slugify }}">{{ order.status }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="muted">Customer</span>
+                            <strong>{{ order.customer_name }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="muted">Phone</span>
+                            <strong>{{ order.contact_phone|default:'Unknown' }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="muted mb-1">Delivery address</p>
+                        <div>{{ order.delivery_address|linebreaksbr }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="muted">ETA</span>
+                            <strong>{{ order.estimated_minutes }} min</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="muted">Route</span>
+                            <strong>{{ order.location_label }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="rider-actions">
+                        <a href="/delivery/{{ order.id }}/" class="btn btn-success btn-sm">Open Route</a>
+                        <button
+                            type="button"
+                            class="btn btn-outline-info btn-sm customer-map-toggle"
+                            data-map-id="customerMap{{ order.id }}"
+                            data-lat="{{ order.customer_latitude|default_if_none:'' }}"
+                            data-lng="{{ order.customer_longitude|default_if_none:'' }}"
+                            data-order="#{{ order.id }}"
+                        >VIEW CUSTOMERS MAP</button>
+                        {% if order.contact_phone %}
+                            <a href="tel:{{ order.contact_phone }}" class="btn btn-outline-light btn-sm">Call Customer</a>
+                        {% endif %}
+                        <form method="post" action="/delivery/{{ order.id }}/update/" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="On the way">
+                            <input type="hidden" name="next" value="dashboard">
+                            <button type="submit" class="btn btn-primary btn-sm">ON THE WAY</button>
+                        </form>
+                        <form method="post" action="/delivery/{{ order.id }}/update/" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="Delivered">
+                            <input type="hidden" name="mark_delivered" value="1">
+                            <input type="hidden" name="next" value="dashboard">
+                            <button type="submit" class="btn btn-warning btn-sm">MARK DELIVERED</button>
+                        </form>
+                    </div>
+                    <div class="customer-map-wrap" id="customerMap{{ order.id }}Wrap">
+                        <div class="customer-map" id="customerMap{{ order.id }}"></div>
+                        <div class="map-note" id="customerMap{{ order.id }}Note">Customer location preview.</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="order-card text-center">
+            <p class="mb-3">No active delivery orders at the moment. Check back after a pickup request arrives.</p>
+            <a href="/" class="btn btn-success">Back to menu</a>
+        </div>
+    {% endif %}
+</div>
+<script>
+    const restaurantCoords = [9.5396111, 125.8381389];
+    const initializedMaps = {};
+
+    function parseCoord(value) {
+        const coord = Number.parseFloat(value);
+        return Number.isFinite(coord) ? coord : null;
+    }
+
+    async function drawDrivingRoute(map, start, end, noteEl) {
+        const routeUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        try {
+            const response = await fetch(routeUrl);
+            if (!response.ok) throw new Error('Route request failed');
+            const data = await response.json();
+            const route = data.routes && data.routes[0];
+            if (!route || !route.geometry) throw new Error('No route found');
+
+            const roadPath = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            L.polyline(roadPath, { color: '#f59e0b', weight: 4, opacity: 0.85 }).addTo(map);
+            map.fitBounds(L.latLngBounds(roadPath), { padding: [22, 22] });
+            if (noteEl) noteEl.textContent = 'Route preview follows available driving roads.';
+        } catch (error) {
+            const bounds = L.latLngBounds([start, end]);
+            map.fitBounds(bounds, { padding: [22, 22] });
+            if (noteEl) noteEl.textContent = 'Customer pin shown. Driving route could not load right now.';
+        }
+    }
+
+    function openCustomerMap(button) {
+        const mapId = button.dataset.mapId;
+        const wrap = document.getElementById(`${mapId}Wrap`);
+        const noteEl = document.getElementById(`${mapId}Note`);
+        const customerLat = parseCoord(button.dataset.lat);
+        const customerLng = parseCoord(button.dataset.lng);
+        wrap.classList.toggle('active');
+
+        if (!wrap.classList.contains('active')) return;
+
+        if (initializedMaps[mapId]) {
+            setTimeout(() => initializedMaps[mapId].invalidateSize(), 80);
+            return;
+        }
+
+        if (customerLat === null || customerLng === null) {
+            noteEl.textContent = 'No shared customer location for this order yet.';
+            return;
+        }
+
+        const customerCoords = [customerLat, customerLng];
+        const map = L.map(mapId, { zoomControl: true, attributionControl: false }).setView(customerCoords, 14);
+        initializedMaps[mapId] = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        L.marker(restaurantCoords).addTo(map).bindPopup('Mark\'s Food Corner');
+        L.marker(customerCoords).addTo(map).bindPopup(`Customer order ${button.dataset.order}`);
+        drawDrivingRoute(map, restaurantCoords, customerCoords, noteEl);
+        setTimeout(() => map.invalidateSize(), 80);
+    }
+
+    document.querySelectorAll('.customer-map-toggle').forEach((button) => {
+        button.addEventListener('click', () => openCustomerMap(button));
+    });
+</script>
+</body>
+</html>

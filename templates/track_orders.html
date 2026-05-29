@@ -1,0 +1,89 @@
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Track Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+        .order-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+        .muted { color: #94a3b8; }
+
+        @media (max-width: 640px) {
+            .page { padding: 20px 12px; }
+            .order-card .d-flex { flex-wrap: wrap; gap: 12px; }
+            .order-card .text-end { width: 100%; text-align: left; }
+            .order-card .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3">Track Orders</h1>
+            <small class="text-muted">Current active orders only.</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-outline-light">Menu</a>
+            <a href="/orders/" class="btn btn-outline-light">Order History</a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="mb-4">
+        <span class="badge bg-warning text-dark fs-6">Active Orders</span>
+        <small class="text-muted ms-2">Only current orders are shown here.</small>
+    </div>
+
+    {% if current_orders %}
+        {% for order in current_orders %}
+            <div class="order-card">
+                <div class="d-flex justify-content-between gap-3 align-items-center">
+                    <div>
+                        <h2 class="h5 mb-1">Order #{{ order.id }}</h2>
+                        <div class="muted">{{ order.created|localtime|date:"F j, Y, g:i a" }}</div>
+                        <div>Status: <strong>{{ order.status }}</strong></div>
+                    </div>
+                    <div class="text-end">
+                        <strong>₱{{ order.total|floatformat:2 }}</strong>
+                        <a href="/track/{{ order.id }}/" class="btn btn-success d-block mt-2">Track</a>
+                        <form method="POST" action="/orders/{{ order.id }}/cancel/" class="mt-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="track">
+                            <button type="submit" class="btn btn-danger d-block w-100" onclick="return confirm('Cancel this order?');">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="order-card text-center">
+            <p class="mb-3">No active orders to track at the moment.</p>
+            <a href="/orders/" class="btn btn-success">View Order History</a>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

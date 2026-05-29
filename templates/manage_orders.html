@@ -1,0 +1,269 @@
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manage Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+        .toolbar, .order-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .order-card {
+            margin-bottom: 14px;
+        }
+        .form-control, .form-select {
+            background: #020617;
+            color: white;
+            border-color: #334155;
+        }
+        .form-control:focus, .form-select:focus {
+            background: #020617;
+            color: white;
+            border-color: #22c55e;
+            box-shadow: none;
+        }
+        .muted { color: #94a3b8; }
+        .tabs a {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0 4px 8px 0;
+            background: #020617;
+        }
+        .tabs a.active {
+            background: #15803d;
+            color: white;
+        }
+        .customer-map-wrap {
+            display: none;
+            margin-top: 14px;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #020617;
+        }
+        .customer-map-wrap.active {
+            display: block;
+        }
+        .customer-map {
+            width: 100%;
+            height: 220px;
+        }
+        .map-note {
+            padding: 8px 10px;
+            border-top: 1px solid #1f2937;
+            color: #cbd5e1;
+            font-size: 0.82rem;
+        }
+        .payment-warning {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(250, 204, 21, 0.12);
+            border: 1px solid rgba(250, 204, 21, 0.35);
+            color: #fde68a;
+            font-size: 0.92rem;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-1">Order Management</h1>
+            <div class="muted">Update status, rider location, ETA, and payment confirmation.</div>
+        </div>
+        <a href="/dashboard/" class="btn btn-outline-light">Dashboard</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="toolbar mb-3 tabs">
+        <a href="/manage-orders/" class="{% if not status %}active{% endif %}">All</a>
+        {% for key, label in status_choices %}
+            <a href="/manage-orders/?status={{ key }}" class="{% if status == key %}active{% endif %}">
+                {{ label }}
+            </a>
+        {% endfor %}
+    </div>
+
+    {% for order in orders %}
+        <form method="POST" action="/manage-orders/{{ order.id }}/update/" enctype="multipart/form-data" class="order-card">
+            {% csrf_token %}
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-3">
+                    <h2 class="h5 mb-1">Order #{{ order.id }}</h2>
+                    <div class="muted">{{ order.customer_name }} | {{ order.contact_phone }}</div>
+                    <div class="muted">{{ order.created|localtime|date:"F j, Y, g:i a" }}</div>
+                    <div class="mt-2"><strong>₱{{ order.total|floatformat:2 }}</strong></div>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        {% for key, label in status_choices %}
+                            <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Payment</label>
+                    <select name="payment_status" class="form-select">
+                        <option value="Unpaid" {% if order.payment_status == "Unpaid" %}selected{% endif %}>Unpaid</option>
+                        <option value="Pending proof" {% if order.payment_status == "Pending proof" %}selected{% endif %}>Pending proof</option>
+                        <option value="Paid" {% if order.payment_status == "Paid" %}selected{% endif %}>Paid</option>
+                        <option value="Failed" {% if order.payment_status == "Failed" %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">ETA minutes</label>
+                    <input name="estimated_minutes" type="number" min="0" class="form-control" value="{{ order.estimated_minutes }}">
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">Location label</label>
+                    <input name="location_label" class="form-control" value="{{ order.location_label }}">
+                </div>
+            </div>
+            <div class="row g-3 align-items-end mt-2">
+                <div class="col-lg-2">
+                    <label class="form-label">Courier</label>
+                    <input name="courier_name" class="form-control" value="{{ order.courier_name }}">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Latitude</label>
+                    <input name="rider_latitude" class="form-control" value="{{ order.rider_latitude }}">
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">Longitude</label>
+                    <input name="rider_longitude" class="form-control" value="{{ order.rider_longitude }}">
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">Delivery proof</label>
+                    <input name="delivery_proof" type="file" class="form-control" accept="image/*">
+                </div>
+                <div class="col-lg-1">
+                    <a href="/track/{{ order.id }}/" class="btn btn-outline-light w-100 mb-2">View</a>
+                </div>
+                <div class="col-lg-2">
+                    <button class="btn btn-success w-100">Save Update</button>
+                </div>
+            </div>
+            <div class="mt-3 muted">
+                Address: {{ order.delivery_address }}
+                {% if order.payment_reference %}| Ref: {{ order.payment_reference }}{% endif %}
+                {% if order.payment_proof %}| <a href="{{ order.payment_proof.url }}" class="link-light">Payment proof</a>{% endif %}
+                {% if order.delivery_proof %}| <a href="{{ order.delivery_proof.url }}" class="link-light">Delivery proof</a>{% endif %}
+            </div>
+            {% if order.payment_method == 'GCash' and order.payment_status == 'Pending proof' %}
+                <div class="payment-warning">
+                    Verify the GCash reference and screenshot against the actual GCash transaction before changing payment to Paid. This order will not show in the rider dashboard until it is marked Paid.
+                </div>
+            {% endif %}
+            <div class="mt-3">
+                <button
+                    type="button"
+                    class="btn btn-outline-info btn-sm customer-map-toggle"
+                    data-map-id="customerMap{{ order.id }}"
+                    data-lat="{{ order.customer_latitude|default_if_none:'' }}"
+                    data-lng="{{ order.customer_longitude|default_if_none:'' }}"
+                    data-order="#{{ order.id }}"
+                >VIEW CUSTOMERS MAP</button>
+            </div>
+            <div class="customer-map-wrap" id="customerMap{{ order.id }}Wrap">
+                <div class="customer-map" id="customerMap{{ order.id }}"></div>
+                <div class="map-note" id="customerMap{{ order.id }}Note">Customer location preview.</div>
+            </div>
+        </form>
+    {% empty %}
+        <div class="order-card text-center">No orders found.</div>
+    {% endfor %}
+</div>
+<script>
+    const restaurantCoords = [9.5396111, 125.8381389];
+    const initializedMaps = {};
+
+    function parseCoord(value) {
+        const coord = Number.parseFloat(value);
+        return Number.isFinite(coord) ? coord : null;
+    }
+
+    async function drawDrivingRoute(map, start, end, noteEl) {
+        const routeUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        try {
+            const response = await fetch(routeUrl);
+            if (!response.ok) throw new Error('Route request failed');
+            const data = await response.json();
+            const route = data.routes && data.routes[0];
+            if (!route || !route.geometry) throw new Error('No route found');
+
+            const roadPath = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            L.polyline(roadPath, { color: '#f59e0b', weight: 4, opacity: 0.85 }).addTo(map);
+            map.fitBounds(L.latLngBounds(roadPath), { padding: [22, 22] });
+            if (noteEl) noteEl.textContent = 'Route preview follows available driving roads.';
+        } catch (error) {
+            const bounds = L.latLngBounds([start, end]);
+            map.fitBounds(bounds, { padding: [22, 22] });
+            if (noteEl) noteEl.textContent = 'Customer pin shown. Driving route could not load right now.';
+        }
+    }
+
+    function openCustomerMap(button) {
+        const mapId = button.dataset.mapId;
+        const wrap = document.getElementById(`${mapId}Wrap`);
+        const noteEl = document.getElementById(`${mapId}Note`);
+        const customerLat = parseCoord(button.dataset.lat);
+        const customerLng = parseCoord(button.dataset.lng);
+        wrap.classList.toggle('active');
+
+        if (!wrap.classList.contains('active')) return;
+
+        if (initializedMaps[mapId]) {
+            setTimeout(() => initializedMaps[mapId].invalidateSize(), 80);
+            return;
+        }
+
+        if (customerLat === null || customerLng === null) {
+            noteEl.textContent = 'No shared customer location for this order yet.';
+            return;
+        }
+
+        const customerCoords = [customerLat, customerLng];
+        const map = L.map(mapId, { zoomControl: true, attributionControl: false }).setView(customerCoords, 14);
+        initializedMaps[mapId] = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        L.marker(restaurantCoords).addTo(map).bindPopup('Mark\'s Food Corner');
+        L.marker(customerCoords).addTo(map).bindPopup(`Customer order ${button.dataset.order}`);
+        drawDrivingRoute(map, restaurantCoords, customerCoords, noteEl);
+        setTimeout(() => map.invalidateSize(), 80);
+    }
+
+    document.querySelectorAll('.customer-map-toggle').forEach((button) => {
+        button.addEventListener('click', () => openCustomerMap(button));
+    });
+</script>
+</body>
+</html>

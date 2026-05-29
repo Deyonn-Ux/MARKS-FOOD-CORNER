@@ -1,0 +1,1535 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mark's Food Corner</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+    background: 
+        linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)),
+        url('https://images.unsplash.com/photo-1504674900247-0877df9cc836');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+@media (max-width: 760px) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
+.title { color: #fff; font-weight: bold; }
+
+.card {
+    border-radius: 15px;
+    background: #1c1c1c;
+    color: white;
+    transition: 0.3s;
+}
+
+.card:hover { transform: scale(1.05); }
+
+.card-body {
+    background: rgba(0,0,0,0.6);
+    border-radius: 0 0 15px 15px;
+}
+
+.card p { color: #ccc; }
+
+.sold-out {
+    opacity: 0.58;
+}
+
+.meta-line {
+    color: #94a3b8;
+    font-size: 13px;
+    min-height: 20px;
+}
+
+.category-box {
+    background: rgba(0, 0, 0, 0.7);
+    border-left: 5px solid #22c55e;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 18px;
+    color: white;
+    display: inline-block;
+}
+
+.featured-section {
+    margin: 18px auto 28px;
+}
+
+.featured-carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #111;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+}
+
+.featured-carousel.dragging {
+    cursor: grabbing;
+}
+
+.featured-track {
+    display: flex;
+    transition: transform 0.55s ease;
+    will-change: transform;
+}
+
+.featured-slide {
+    min-width: 100%;
+    height: clamp(280px, 36vw, 420px);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    background: #0f172a;
+    overflow: hidden;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 28px 70px rgba(15, 23, 42, 0.35);
+}
+
+.featured-image-block {
+    background: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+}
+
+.featured-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.featured-copy {
+    position: relative;
+    z-index: 2;
+    padding: clamp(22px, 4vw, 44px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #f8fafc;
+    background: #111827;
+}
+
+.featured-kicker {
+    margin: 0 0 10px;
+    color: #f59e0b;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.featured-title {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 1;
+    font-weight: 900;
+}
+
+.featured-meta {
+    margin-top: 14px;
+    color: #f59e0b;
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+.featured-desc {
+    margin-top: 14px;
+    max-width: 460px;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+
+.featured-slide::after {
+    display: none;
+}
+
+.alert.auto-hide {
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.alert.auto-hide.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+    width: 52px;
+    height: 52px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.72);
+    color: #111827;
+    font-size: 2rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.carousel-btn:hover {
+    background: #fff;
+}
+
+.carousel-btn.prev { left: 18px; }
+.carousel-btn.next { right: 18px; }
+
+.carousel-dots {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.carousel-dot {
+    width: 28px;
+    height: 6px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.45);
+    cursor: pointer;
+}
+
+.carousel-dot.active {
+    width: 44px;
+    background: #f59e0b;
+}
+
+.category-nav {
+    margin: 24px 0 26px;
+    padding: 10px 0 4px;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.category-pill {
+    flex: 0 0 auto;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #111827;
+    background: #fff;
+    text-decoration: none;
+    font-weight: 900;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+}
+
+.category-pill:hover,
+.category-pill.active {
+    color: #111827;
+    background: #f59e0b;
+}
+
+#searchInput {
+    border-radius: 25px;
+    padding: 12px;
+    border: none;
+    outline: none;
+}
+
+.cart-badge {
+    position:absolute;
+    top:-8px;
+    right:-10px;
+    background:#ef4444;
+    color:white;
+    font-size:12px;
+    padding:5px 8px;
+    border-radius:50%;
+    font-weight:bold;
+}
+
+#loader { display:none; }
+
+/* Animation */
+@keyframes addCartAnim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); background-color: #22c55e; }
+    100% { transform: scale(1); }
+}
+.added { animation: addCartAnim 0.4s ease; }
+
+/* Fly-to-cart animation image style */
+.fly-img-clone {
+    position: fixed;
+    z-index: 2000;
+    pointer-events: none;
+    transition: transform 0.7s cubic-bezier(.2,.8,.2,1), opacity 0.35s ease;
+    will-change: transform, opacity;
+    border-radius: 8px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease, background 0.25s ease;
+}
+.modal-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+.food-modal {
+    width: min(560px, calc(100% - 32px));
+    border-radius: 24px;
+    background: #111;
+    border: 1px solid #333;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.35);
+    /* allow scrolling inside modal to keep it within viewport */
+    overflow-y: auto;
+    max-height: calc(100vh - 40px);
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+    transition: transform 0.28s ease, opacity 0.28s ease;
+}
+.modal-backdrop.show .food-modal {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.food-modal img {
+    width: 100%;
+    /* reduce image height so modal content fits on smaller viewports */
+    height: 200px;
+    max-height: 40vh;
+    object-fit: cover;
+}
+
+@media (max-height: 720px) {
+    .food-modal img { height: 160px; }
+}
+
+@media (max-width: 420px) {
+    .food-modal { width: calc(100% - 24px); }
+    .food-modal img { height: 140px; }
+    .food-modal-body .flavor-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .featured-slide {
+        height: 430px;
+        grid-template-columns: 1fr;
+    }
+
+    .featured-copy {
+        justify-content: flex-end;
+        padding: 26px 22px 58px;
+        background: linear-gradient(0deg, rgba(0,0,0,0.92), rgba(0,0,0,0.08));
+    }
+
+    .featured-desc {
+        max-height: 4.8em;
+        overflow: hidden;
+    }
+
+    .carousel-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.6rem;
+    }
+}
+.food-modal-body {
+    padding: 24px;
+    color: #f8fafc;
+}
+.food-modal-body h3 {
+    margin-bottom: 8px;
+}
+.food-modal-body p {
+    color: #cbd5e1;
+}
+.food-modal-body .label {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+.food-modal-body .field-group {
+    margin-bottom: 18px;
+}
+.food-modal-body .field-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+.food-modal-body .field-group textarea,
+.food-modal-body .field-group select,
+.food-modal-body .field-group input[type='number'] {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid #334155;
+    background: #111;
+    color: #f8fafc;
+    padding: 12px 14px;
+    outline: none;
+}
+.food-modal-body .field-group textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+.food-modal-body .field-group select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #94a3b8 50%),
+                      linear-gradient(135deg, #94a3b8 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+.food-modal-body .flavor-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.food-modal-body .flavor-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #f8fafc;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.food-modal-body .flavor-checkbox input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #38bdf8;
+}
+.food-modal-body .flavor-checkbox:hover {
+    border-color: #38bdf8;
+}
+.food-modal-body .helper {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin-top: 8px;
+}
+.qty-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.qty-control button {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+}
+.qty-control button:hover {
+    background: rgba(255,255,255,0.14);
+}
+.qty-control input {
+    max-width: 88px;
+    text-align: center;
+    border-radius: 14px;
+}
+.food-modal-footer {
+    padding: 18px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.food-modal-footer .btn {
+    min-width: 140px;
+}
+.food-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.food-modal-close:hover {
+    background: rgba(255,255,255,0.16);
+}
+.food-modal-footer .btn {
+    min-width: 140px;
+}
+
+.navbar {
+    min-height: 82px;
+}
+
+.brand-logo {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+
+.auth-menu {
+    margin-left: auto;
+    position: relative;
+}
+
+.account-button {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar .btn-light {
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.navbar .btn-light:hover,
+.btn-animated:hover {
+    transform: translateY(-1px);
+}
+
+.btn-animated {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+    background: #111827;
+    border: 1px solid rgba(245, 158, 11, 0.32);
+    color: #f8fafc;
+    box-shadow: 0 10px 18px rgba(17, 24, 39, 0.35);
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.btn-animated::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(248, 113, 20, 0.22), rgba(191, 90, 242, 0.18));
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    z-index: -1;
+}
+
+.btn-animated:hover::before {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+.btn-animated:hover {
+    background: #111827;
+    box-shadow: 0 16px 28px rgba(17, 24, 39, 0.45);
+}
+
+.btn-gradient {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    background: linear-gradient(135deg, #0f172a 0%, #f59e0b 42%, #ea580c 100%);
+    background-size: 300% 300%;
+    box-shadow: 0 16px 28px rgba(245, 158, 11, 0.28);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    animation: gradientShift 4s ease infinite;
+}
+
+.btn-gradient:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+    box-shadow: 0 20px 34px rgba(245, 158, 11, 0.32);
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.account-avatar,
+.menu-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e5e7eb;
+}
+
+.auth-menu-panel {
+    position: absolute;
+    top: calc(100% + 14px);
+    right: 0;
+    width: 280px;
+    background: #fff;
+    color: #1f2937;
+    border-radius: 14px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+    padding: 12px;
+    display: none;
+    z-index: 1000;
+}
+
+.auth-menu-panel.show { display: block; }
+
+.menu-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 6px;
+}
+
+.menu-profile strong {
+    display: block;
+}
+
+.menu-profile span {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.menu-link,
+.menu-logout {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.menu-link:hover,
+.menu-logout:hover {
+    background: #f6f3f3;
+    color: #111827;
+}
+
+.menu-divider {
+    border-top: 1px solid #e5e7eb;
+    margin: 6px 0;
+}
+
+.site-footer {
+    margin-top: 48px;
+    background: rgba(17, 17, 17, 0.94);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    color: #f8fafc;
+}
+
+.footer-inner {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 34px 0 24px;
+}
+
+.footer-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+}
+
+.footer-logo {
+    width: 118px;
+    height: 118px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 28px;
+}
+
+.footer-column h3 {
+    margin: 0 0 14px;
+    color: #f59e0b;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.footer-column p,
+.footer-column a {
+    color: #cbd5e1;
+    text-decoration: none;
+    line-height: 1.7;
+    margin: 0 0 8px;
+    overflow-wrap: anywhere;
+}
+
+.footer-column a:hover {
+    color: #22c55e;
+}
+
+.fb-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #1877f2;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.6rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.fb-icon:hover {
+    color: #fff;
+    background: #0f63d8;
+}
+
+.footer-bottom {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+    color: #94a3b8;
+}
+
+@media (max-width: 860px) {
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-logo {
+        width: 58px;
+        height: 58px;
+    }
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 82px;
+    position: sticky;
+    top: 0;
+    z-index: 110;
+    background: rgba(17,17,17,0.96);
+    backdrop-filter: blur(10px);
+}
+
+.navbar .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar .header-left .auth-menu {
+    margin-left: 0;
+}
+
+.sticky-bar {
+    position: sticky;
+    top: 82px;
+    z-index: 105;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 14px 38px rgba(0,0,0,0.12);
+    padding: 6px 0;
+    border-radius: 999px;
+    transition: transform 0.26s ease, opacity 0.26s ease;
+}
+
+.sticky-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 0.75rem;
+}
+
+.sticky-bar .category-nav {
+    margin: 0;
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    flex: 1 1 auto;
+}
+
+.view-order-btn {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    margin: 0;
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 0.95rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+@media (max-width: 768px) {
+    .sticky-bar {
+        top: 72px;
+        padding: 6px 0;
+    }
+    .sticky-bar-inner {
+        justify-content: center;
+        gap: 8px;
+        padding: 0 0.75rem;
+    }
+    .category-nav {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+    .category-pill {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 0.9rem;
+    }
+    .view-order-btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar px-4" style="background:#111; border-bottom:1px solid #333;">
+    <div class="header-left">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{% static 'images/marks-food-corner-logo.png' %}" alt="Mark's Food Corner logo" class="brand-logo">
+            <a class="navbar-brand text-white fw-bold mb-0" href="/">
+                Mark's Food Corner
+            </a>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        {% if not request.user.is_authenticated %}
+            <a href="/login/" class="btn btn-gradient btn-sm">Login</a>
+            <a href="/register/" class="btn btn-gradient btn-sm">Sign up</a>
+        {% elif request.user.is_authenticated and not request.user.is_staff %}
+            {% if is_delivery %}
+                <a href="/delivery/" class="btn btn-info btn-sm">Delivery Dashboard</a>
+            {% endif %}
+            <div class="auth-menu">
+                <button type="button" id="authMenuButton" class="account-button">
+                    {% if profile.picture %}
+                        <img src="{{ profile.picture.url }}" alt="Profile picture" class="account-avatar">
+                    {% else %}
+                        <span class="account-avatar d-inline-flex align-items-center justify-content-center">U</span>
+                    {% endif %}
+                    <span>{{ request.user.username }}</span>
+                    <span>⌄</span>
+                </button>
+
+                <div id="authMenuPanel" class="auth-menu-panel">
+                    <div class="menu-profile">
+                        {% if profile.picture %}
+                            <img src="{{ profile.picture.url }}" alt="Profile picture" class="menu-avatar">
+                        {% else %}
+                            <span class="menu-avatar d-inline-flex align-items-center justify-content-center">U</span>
+                        {% endif %}
+                        <div>
+                            <strong>{{ request.user.username }}</strong>
+                            <span>Restaurant account</span>
+                        </div>
+                    </div>
+
+                    <a href="/profile/" class="menu-link">
+                        <span>👤</span>
+                        <span>Profile</span>
+                    </a>
+
+                    <a href="/profile/#change-password" class="menu-link">
+                        <span>🔒</span>
+                        <span>Change password</span>
+                    </a>
+
+                    <a href="/orders/" class="menu-link">
+                        <span>🛒</span>
+                        <span>My order</span>
+                    </a>
+
+                    <a href="/track-orders/" class="menu-link">
+                        <span>📍</span>
+                        <span>Track orders</span>
+                    </a>
+
+                    <div class="menu-divider"></div>
+
+                    <form action="/logout/" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="menu-logout">
+                            <span>↪</span>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% elif request.user.is_staff %}
+            <span class="text-white fw-bold">Admin: {{ request.user.username }}</span>
+            <a href="/manage-orders/" class="btn btn-success btn-sm">Orders</a>
+            <a href="/dashboard/" class="btn btn-info btn-sm">Dashboard</a>
+            <a href="/admin/" class="btn btn-warning btn-sm">Admin Panel</a>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- LOADING (disabled) -->
+<!-- loader removed to prevent blocking overlay -->
+
+<div class="container py-4">
+
+{% if featured_categories %}
+<section class="featured-section" aria-label="Featured products">
+    <div class="featured-carousel" id="featuredCarousel">
+        <div class="featured-track" id="featuredTrack">
+            {% for group in featured_categories %}
+                {% for food in group.foods %}
+                    <article class="featured-slide">
+                        <div class="featured-copy">
+                            <p class="featured-kicker">{{ group.category.name }}</p>
+                            <h2 class="featured-title">{{ food.name }}</h2>
+                            <div class="featured-meta">PHP {{ food.price }}</div>
+                            <p class="featured-desc">{{ food.description|default:"Freshly prepared Filipino favorite." }} Enjoy every bite of our chef-made flavor, served hot and ready.</p>
+                        </div>
+                        <div class="featured-image-block">
+                            {% if food.image %}
+                                <img class="featured-image" src="{{ food.image.url }}" alt="{{ food.name }}" draggable="false">
+                            {% else %}
+                                <img class="featured-image" src="/media/foods/FOOD_1.webp" alt="{{ food.name }}" draggable="false">
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <button class="carousel-btn prev" type="button" id="featuredPrev" aria-label="Previous featured product">‹</button>
+        <button class="carousel-btn next" type="button" id="featuredNext" aria-label="Next featured product">›</button>
+        <div class="carousel-dots" id="featuredDots" aria-label="Featured product controls"></div>
+    </div>
+</section>
+{% endif %}
+
+<div class="sticky-bar" id="stickyBar" aria-label="Category navigation and cart shortcut">
+    <div class="sticky-bar-inner">
+        <nav class="category-nav" aria-label="Menu categories">
+            {% for c in categories %}
+                <a class="category-pill" href="#category-{{ c.name|slugify }}">{{ c.name }}</a>
+            {% endfor %}
+        </nav>
+        {% if not request.user.is_staff %}
+            <a href="/cart/" class="btn btn-dark btn-lg view-order-btn position-relative">
+                View Order
+                {% if cart_count > 0 %}
+                    <span class="cart-badge">{{ cart_count }}</span>
+                {% endif %}
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<h1 class="text-center title mb-4">MARK'S FOOD CORNER MENU</h1>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-success text-center auto-hide">
+{{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- SEARCH -->
+<div class="mb-4 text-center">
+<input type="text" id="searchInput" placeholder="Search food..." 
+class="form-control w-50 mx-auto">
+</div>
+
+{% for c in categories %}
+<div class="category-box mt-4 mb-3" id="category-{{ c.name|slugify }}">
+{{c.name}}
+</div>
+
+<div class="row">
+{% for f in c.food_set.all %}
+
+<div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+<div class="card shadow-lg h-100 {% if not f.is_available %}sold-out{% endif %}" data-food-id="{{f.id}}" data-food-name="{{f.name|escape}}" data-food-price="{{f.price}}" data-food-description="{{f.description|default:'Freshly prepared Filipino favorite.'|escape}}" data-food-prep="{{f.preparation_minutes}}" data-food-img="{% if f.image %}{{f.image.url}}{% else %}/media/foods/FOOD_1.webp{% endif %}" data-food-available="{{ f.is_available|yesno:'true,false' }}">
+
+{% if f.image %}
+<img src="{{f.image.url}}" class="card-img-top" style="height:180px; object-fit:cover;">
+{% else %}
+<img src="/media/foods/FOOD_1.webp" class="card-img-top" style="height:180px; object-fit:cover;">
+{% endif %}
+
+<div class="card-body text-center">
+
+<h5>{{f.name}}</h5>
+<p class="text-warning fw-bold">₱{{f.price}}</p>
+<div class="meta-line">{{ f.preparation_minutes }} min prep</div>
+<p>{{f.description|default:"Freshly prepared Filipino favorite."}}</p>
+
+<form action="/add/{{f.id}}/" method="POST">
+{% csrf_token %}
+
+<input type="number" name="quantity" value="1" min="1" class="form-control mb-2">
+
+{% if f.is_available %}
+<button type="submit" class="btn btn-success w-100 order-btn">
+Add to Order
+</button>
+{% else %}
+<button type="button" class="btn btn-secondary w-100" disabled>
+Sold Out
+</button>
+{% endif %}
+
+</form>
+
+</div>
+</div>
+</div>
+
+{% endfor %}
+</div>
+{% endfor %}
+
+</div>
+
+{% include 'partials/site_footer.html' %}
+
+<div id="foodModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="food-modal position-relative">
+        <button type="button" class="food-modal-close" aria-label="Close">×</button>
+        <img id="foodModalImage" src="" alt="Food image">
+        <div class="food-modal-body">
+            <div class="label" id="foodModalStatus"></div>
+            <h3 id="foodModalTitle"></h3>
+            <p class="fw-bold text-warning mb-2" id="foodModalPrice"></p>
+            <div class="label" id="foodModalPrep"></div>
+            <p id="foodModalDescription"></p>
+
+            <form id="foodModalForm" action="" method="POST" class="d-flex flex-column gap-3">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label for="foodModalInstructions">Special instructions</label>
+                    <textarea id="foodModalInstructions" name="special_instructions" placeholder="e.g. no onions, extra sauce"></textarea>
+                    <div class="helper">Let the kitchen know anything special you want.</div>
+                </div>
+
+                <div class="field-group" id="foodModalFlavorGroup" style="display:none;">
+                    <label>CHOICE OF FLAVOR (FREE)</label>
+                    <div class="flavor-options">
+                        <label class="flavor-checkbox"><input type="checkbox" name="flavor_choice" value="Cheese"> Cheese</label>
+                        <label class="flavor-checkbox"><input type="checkbox" name="flavor_choice" value="Sour Cream"> Sour Cream</label>
+                        <label class="flavor-checkbox"><input type="checkbox" name="flavor_choice" value="Salt"> Salt</label>
+                        <label class="flavor-checkbox"><input type="checkbox" name="flavor_choice" value="BBQ"> BBQ</label>
+                    </div>
+                    <div class="helper">Check the flavor(s) you want. All flavors are free.</div>
+                </div>
+
+                <div class="field-group">
+                    <label for="foodModalUnavailable">If this product is not available</label>
+                    <select id="foodModalUnavailable" name="unavailable_action">
+                        <option value="remove">Remove it from my order</option>
+                        <option value="keep">Keep it in my cart</option>
+                        <option value="ask">Ask me before removing</option>
+                    </select>
+                    <div class="helper">Choose what should happen if the item becomes unavailable.</div>
+                </div>
+
+                <div class="food-modal-footer">
+                    <div class="qty-control">
+                        <button type="button" id="quantityMinus">−</button>
+                        <input type="number" name="quantity" id="foodModalQuantity" value="1" min="1" class="form-control">
+                        <button type="button" id="quantityPlus">+</button>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Add to Order</button>
+                </div>
+            </form>
+        </div>
+        <button type="button" class="btn btn-outline-light" id="foodModalCancel">Close</button>
+    </div>
+    </div>
+</div>
+
+<script>
+// General UI handlers
+setTimeout(() => {
+    document.querySelectorAll(".auto-hide").forEach(alert => {
+        alert.classList.add("hide");
+        setTimeout(() => alert.remove(), 600);
+    });
+}, 4500);
+
+document.querySelectorAll(".order-btn").forEach(btn=>{
+    btn.addEventListener("click",function(){
+        let card=this.closest(".card");
+        card.classList.add("added");
+        setTimeout(()=>card.classList.remove("added"),400);
+    });
+});
+
+// Modal elements
+const modalBackdrop = document.getElementById("foodModalBackdrop");
+const foodModalTitle = document.getElementById("foodModalTitle");
+const foodModalPrice = document.getElementById("foodModalPrice");
+const foodModalDescription = document.getElementById("foodModalDescription");
+const foodModalPrep = document.getElementById("foodModalPrep");
+const foodModalStatus = document.getElementById("foodModalStatus");
+const foodModalImage = document.getElementById("foodModalImage");
+const foodModalForm = document.getElementById("foodModalForm");
+const foodModalQuantity = document.getElementById("foodModalQuantity");
+const foodModalInstructions = document.getElementById("foodModalInstructions");
+const foodModalFlavor = document.querySelectorAll("input[name='flavor_choice']");
+const foodModalUnavailable = document.getElementById("foodModalUnavailable");
+const foodModalCancel = document.getElementById("foodModalCancel");
+const foodModalClose = document.querySelector(".food-modal-close");
+const quantityMinus = document.getElementById("quantityMinus");
+const quantityPlus = document.getElementById("quantityPlus");
+
+const closeModal = () => {
+    modalBackdrop.classList.remove("show");
+    modalBackdrop.setAttribute("aria-hidden", "true");
+};
+
+const openModal = card => {
+    const id = card.dataset.foodId;
+    const name = card.dataset.foodName;
+    const price = card.dataset.foodPrice;
+    const description = card.dataset.foodDescription;
+    const prep = card.dataset.foodPrep;
+    const img = card.dataset.foodImg;
+    const available = card.dataset.foodAvailable === "true";
+
+    foodModalTitle.textContent = name;
+    foodModalPrice.textContent = `₱${price}`;
+    foodModalDescription.textContent = description;
+    foodModalPrep.textContent = `${prep} min prep`;
+    foodModalStatus.textContent = available ? "Available now" : "Sold out";
+    foodModalStatus.style.color = available ? "#22c55e" : "#f87171";
+    foodModalImage.src = img;
+    foodModalForm.action = `/add/${id}/`;
+    foodModalQuantity.value = 1;
+    foodModalInstructions.value = '';
+    const needsFlavor = name.toLowerCase().trim() === 'french fries';
+    if (foodModalFlavor && foodModalFlavor.length) {
+        foodModalFlavor.forEach(input => {
+            input.checked = false;
+            input.required = needsFlavor;
+        });
+    }
+    const flavorGroup = document.getElementById('foodModalFlavorGroup');
+    if (flavorGroup) {
+        flavorGroup.style.display = needsFlavor ? 'block' : 'none';
+    }
+    foodModalUnavailable.value = 'remove';
+    const submitBtn = foodModalForm.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.disabled = !available;
+
+    // mark that we're opening the modal so form submit handlers skip fly animation
+    window._openingModal = true;
+    setTimeout(()=> { window._openingModal = false; }, 300);
+
+    modalBackdrop.classList.add("show");
+    modalBackdrop.removeAttribute("aria-hidden");
+};
+
+if (quantityMinus) quantityMinus.addEventListener("click", () => {
+    const current = Math.max(1, parseInt(foodModalQuantity.value) || 1);
+    foodModalQuantity.value = Math.max(1, current - 1);
+});
+if (quantityPlus) quantityPlus.addEventListener("click", () => {
+    const current = Math.max(1, parseInt(foodModalQuantity.value) || 1);
+    foodModalQuantity.value = Math.min(99, current + 1);
+});
+
+// Card click opens modal (ignore clicks on form/button/link)
+document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', function(event) {
+        if (event.target.closest('form') || event.target.closest('button') || event.target.closest('a')) {
+            return;
+        }
+        openModal(card);
+    });
+});
+
+if (foodModalCancel) foodModalCancel.addEventListener("click", closeModal);
+if (foodModalClose) foodModalClose.addEventListener("click", closeModal);
+if (modalBackdrop) modalBackdrop.addEventListener("click", event => {
+    if (event.target === modalBackdrop) closeModal();
+});
+
+// Search
+const searchInput = document.getElementById("searchInput");
+if (searchInput) {
+    searchInput.addEventListener("input", function() {
+        const term = this.value.toLowerCase().trim();
+        document.querySelectorAll(".card").forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.closest(".col-lg-4").style.display = text.includes(term) ? "" : "none";
+        });
+    });
+}
+
+// Featured product carousel
+const featuredCarousel = document.getElementById("featuredCarousel");
+const featuredTrack = document.getElementById("featuredTrack");
+const featuredSlides = featuredTrack ? Array.from(featuredTrack.querySelectorAll(".featured-slide")) : [];
+const featuredDots = document.getElementById("featuredDots");
+let featuredIndex = 0;
+let featuredTimer = null;
+let swipeStartX = 0;
+let swipeDeltaX = 0;
+let isSwiping = false;
+let swipePointerId = null;
+
+function renderFeaturedDots() {
+    if (!featuredDots || !featuredSlides.length) return;
+    featuredDots.innerHTML = "";
+    featuredSlides.forEach((slide, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "carousel-dot";
+        dot.setAttribute("aria-label", `Show featured product ${index + 1}`);
+        dot.addEventListener("click", () => {
+            showFeatured(index);
+            restartFeaturedAutoplay();
+        });
+        featuredDots.appendChild(dot);
+    });
+}
+
+function showFeatured(index) {
+    if (!featuredTrack || !featuredSlides.length) return;
+    featuredIndex = (index + featuredSlides.length) % featuredSlides.length;
+    featuredTrack.style.transform = `translateX(-${featuredIndex * 100}%)`;
+    document.querySelectorAll(".carousel-dot").forEach((dot, dotIndex) => {
+        dot.classList.toggle("active", dotIndex === featuredIndex);
+    });
+}
+
+function nextFeatured() {
+    showFeatured(featuredIndex + 1);
+}
+
+function prevFeatured() {
+    showFeatured(featuredIndex - 1);
+}
+
+function restartFeaturedAutoplay() {
+    if (featuredTimer) clearInterval(featuredTimer);
+    if (featuredSlides.length > 1) {
+        featuredTimer = setInterval(nextFeatured, 4200);
+    }
+}
+
+if (featuredSlides.length) {
+    renderFeaturedDots();
+    showFeatured(0);
+    restartFeaturedAutoplay();
+
+    const prevBtn = document.getElementById("featuredPrev");
+    const nextBtn = document.getElementById("featuredNext");
+
+    if (prevBtn) prevBtn.addEventListener("click", () => {
+        prevFeatured();
+        restartFeaturedAutoplay();
+    });
+
+    if (nextBtn) nextBtn.addEventListener("click", () => {
+        nextFeatured();
+        restartFeaturedAutoplay();
+    });
+
+    function startFeaturedSwipe(x, pointerId = null) {
+        isSwiping = true;
+        swipeStartX = x;
+        swipeDeltaX = 0;
+        swipePointerId = pointerId;
+        featuredCarousel.classList.add("dragging");
+        if (featuredTimer) clearInterval(featuredTimer);
+    }
+
+    function moveFeaturedSwipe(x) {
+        if (!isSwiping) return;
+        swipeDeltaX = x - swipeStartX;
+    }
+
+    function endFeaturedSwipe() {
+        if (!isSwiping) return;
+        isSwiping = false;
+        featuredCarousel.classList.remove("dragging");
+
+        if (Math.abs(swipeDeltaX) > 48) {
+            if (swipeDeltaX < 0) {
+                nextFeatured();
+            } else {
+                prevFeatured();
+            }
+        }
+        swipeDeltaX = 0;
+        swipePointerId = null;
+        restartFeaturedAutoplay();
+    }
+
+    featuredCarousel.addEventListener("pointerdown", event => {
+        if (event.target.closest("button")) return;
+        startFeaturedSwipe(event.clientX, event.pointerId);
+        if (featuredCarousel.setPointerCapture) {
+            featuredCarousel.setPointerCapture(event.pointerId);
+        }
+    });
+
+    featuredCarousel.addEventListener("pointermove", event => {
+        if (swipePointerId !== null && event.pointerId !== swipePointerId) return;
+        moveFeaturedSwipe(event.clientX);
+    });
+
+    featuredCarousel.addEventListener("pointerup", event => {
+        if (featuredCarousel.releasePointerCapture && swipePointerId !== null) {
+            try {
+                featuredCarousel.releasePointerCapture(swipePointerId);
+            } catch (error) {}
+        }
+        endFeaturedSwipe();
+    });
+
+    featuredCarousel.addEventListener("pointercancel", endFeaturedSwipe);
+    featuredCarousel.addEventListener("lostpointercapture", endFeaturedSwipe);
+
+    featuredCarousel.addEventListener("touchstart", event => {
+        if (event.target.closest("button")) return;
+        startFeaturedSwipe(event.touches[0].clientX);
+    }, { passive: true });
+
+    featuredCarousel.addEventListener("touchmove", event => {
+        moveFeaturedSwipe(event.touches[0].clientX);
+    }, { passive: true });
+
+    featuredCarousel.addEventListener("touchend", endFeaturedSwipe);
+
+    featuredCarousel.addEventListener("dragstart", event => {
+        event.preventDefault();
+    });
+
+    featuredCarousel.addEventListener("mouseenter", () => {
+        if (featuredTimer) clearInterval(featuredTimer);
+    });
+
+    featuredCarousel.addEventListener("mouseleave", restartFeaturedAutoplay);
+}
+
+// Category jump bar
+const categoryPills = Array.from(document.querySelectorAll(".category-pill"));
+const categorySections = categoryPills
+    .map(pill => document.querySelector(pill.getAttribute("href")))
+    .filter(Boolean);
+const stickyBar = document.getElementById("stickyBar");
+const pageHeader = document.querySelector(".navbar");
+
+function getStickyOffset() {
+    const headerHeight = pageHeader ? pageHeader.offsetHeight : 0;
+    const barHeight = stickyBar ? stickyBar.offsetHeight : 0;
+    return headerHeight + barHeight + 12;
+}
+
+categoryPills.forEach(pill => {
+    pill.addEventListener("click", event => {
+        const target = document.querySelector(pill.getAttribute("href"));
+        if (!target) return;
+        event.preventDefault();
+        const offset = target.getBoundingClientRect().top + window.scrollY - getStickyOffset();
+        window.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+        categoryPills.forEach(item => item.classList.toggle("active", item === pill));
+    });
+});
+
+function updateActiveCategory() {
+    if (!categorySections.length) return;
+    const offsetThreshold = getStickyOffset() + 8;
+    let activeId = categorySections[0].id;
+    categorySections.forEach(section => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= offsetThreshold) {
+            activeId = section.id;
+        }
+    });
+    categoryPills.forEach(pill => {
+        pill.classList.toggle("active", pill.getAttribute("href") === `#${activeId}`);
+    });
+}
+
+window.addEventListener("scroll", updateActiveCategory, { passive: true });
+updateActiveCategory();
+
+// Auth menu
+const authMenuButton = document.getElementById("authMenuButton");
+const authMenuPanel = document.getElementById("authMenuPanel");
+
+if (authMenuButton && authMenuPanel) {
+    authMenuButton.addEventListener("click", e=>{
+        e.stopPropagation();
+        authMenuPanel.classList.toggle("show");
+    });
+    document.addEventListener("click", ()=>{
+        authMenuPanel.classList.remove("show");
+    });
+}
+
+// Fly-to-cart animation utility
+function flyToCart(imageSrc, startRect, done) {
+    const cartBtn = document.querySelector('a[href="/cart/"]');
+    if (!cartBtn) { done && done(); return; }
+    const endRect = cartBtn.getBoundingClientRect();
+
+    const img = document.createElement('img');
+    img.src = imageSrc;
+    img.className = 'fly-img-clone';
+    img.style.width = Math.min(startRect.width, 120) + 'px';
+    img.style.height = 'auto';
+    img.style.left = startRect.left + 'px';
+    img.style.top = startRect.top + 'px';
+    img.style.opacity = '1';
+    document.body.appendChild(img);
+
+    // compute translation
+    const translateX = (endRect.left + endRect.width/2) - (startRect.left + startRect.width/2);
+    const translateY = (endRect.top + endRect.height/2) - (startRect.top + startRect.height/2);
+    const scale = 0.18;
+
+    // force layout
+    img.getBoundingClientRect();
+    requestAnimationFrame(() => {
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        img.style.opacity = '0.85';
+    });
+
+    setTimeout(() => {
+        img.style.opacity = '0';
+        setTimeout(()=>{ img.remove(); done && done(); }, 220);
+    }, 700);
+}
+
+// Attach to all add forms inside cards
+document.querySelectorAll("form[action^='/add/']").forEach(form=>{
+    form.addEventListener('submit', function(e){
+        // if user submits via JS or browser without clicking button, let it proceed
+        if (e.__flyHandled) return;
+        // skip fly animation if we're opening the modal (click on card)
+        if (window._openingModal) return;
+        e.preventDefault();
+
+        // find image within the same card
+        const card = form.closest('.card');
+        let imgEl = card && card.querySelector('img');
+        const imgSrc = imgEl ? imgEl.src : '';
+
+        const startRect = imgEl ? imgEl.getBoundingClientRect() : form.getBoundingClientRect();
+
+        flyToCart(imgSrc || '/media/foods/FOOD_1.webp', startRect, ()=>{
+            // submit the form after animation
+            form.submit();
+        });
+    }, {passive: false});
+});
+
+// Modal form submission — animate then submit
+const modalForm = document.getElementById('foodModalForm');
+if (modalForm) {
+    modalForm.addEventListener('submit', function(e){
+        if (e.__flyHandled) return;
+        // if opening modal just happened, allow normal submit (no fly)
+        if (window._openingModal) return;
+        e.preventDefault();
+        const imgEl = document.getElementById('foodModalImage');
+        const startRect = imgEl.getBoundingClientRect();
+        const imgSrc = imgEl.src || '';
+        flyToCart(imgSrc || '/media/foods/FOOD_1.webp', startRect, ()=>{
+            modalForm.submit();
+        });
+        closeModal();
+    }, {passive: false});
+}
+</script>
+
+</body>
+</html>

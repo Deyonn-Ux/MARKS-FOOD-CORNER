@@ -1,0 +1,376 @@
+{% load static %}
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Track Order #{{ order.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .page {
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+        .panel {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+        }
+        .status-pill {
+            display: inline-flex;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #15803d;
+            color: white;
+            font-weight: 700;
+        }
+        .progress {
+            height: 12px;
+            background: #1e293b;
+        }
+        .progress-bar {
+            background: #22c55e;
+        }
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .step {
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            min-height: 78px;
+            color: #94a3b8;
+        }
+        .step.active {
+            border-color: #22c55e;
+            color: white;
+        }
+        .map {
+            min-height: 420px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        #mapCanvas {
+            width: 100%;
+            height: 420px;
+        }
+        .map-details {
+            margin-bottom: 14px;
+        }
+        .muted { color: #94a3b8; }
+        .brand-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+        }
+        @media (max-width: 760px) {
+            .timeline { grid-template-columns: 1fr; }
+            .page { padding: 20px 12px; }
+            .panel .d-flex.justify-content-between { flex-wrap: wrap; gap: 12px; }
+            .panel .text-end { width: 100%; text-align: left; }
+            #mapCanvas { min-height: 320px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <img src="{% static 'images/marks-food-corner-logo.png' %}" alt="Mark's Food Corner logo" class="brand-logo">
+            <div>
+                <h1 class="h3 mb-1">Order #{{ order.id }}</h1>
+                <div class="muted">Placed {{ order.created|localtime|date:"F j, Y, g:i a" }}</div>
+            </div>
+        </div>
+        <a href="/" class="btn btn-outline-light">Menu</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="panel mb-3">
+                <div class="d-flex justify-content-between gap-3 align-items-start">
+                    <div>
+                        <div class="muted">Current status</div>
+                        <span id="statusText" class="status-pill">{{ order.status }}</span>
+                    </div>
+                    <div class="text-end">
+                        <div class="muted">Estimated time</div>
+                        <strong id="etaText">{{ order.estimated_minutes }} min</strong>
+                    </div>
+                </div>
+                <div class="progress mt-3">
+                    <div id="progressBar" class="progress-bar" style="width: {{ order.tracking_percent }}%"></div>
+                </div>
+                <div class="timeline" id="timeline">
+                    <div class="step" data-step="Pending"><strong>Pending</strong><br><span>Order received</span></div>
+                    <div class="step" data-step="Preparing"><strong>Preparing</strong><br><span>Kitchen cooking</span></div>
+                    <div class="step" data-step="Ready"><strong>Ready</strong><br><span>Waiting for rider</span></div>
+                    <div class="step" data-step="On the way"><strong>On the way</strong><br><span>Rider moving</span></div>
+                    <div class="step" data-step="Delivered"><strong>Delivered</strong><br><span>Order arrived</span></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="h5">Order Items</h2>
+                {% for item in items %}
+                    <div class="d-flex justify-content-between border-bottom border-secondary py-2">
+                        <span>
+                            {{ item.food.name }} x {{ item.quantity }}
+                            {% if item.flavor_choice %}
+                                <small class="text-muted">({{ item.flavor_choice }})</small>
+                            {% endif %}
+                        </span>
+                        <strong>₱{{ item.subtotal|floatformat:2 }}</strong>
+                    </div>
+                {% endfor %}
+                <div class="d-flex justify-content-between pt-3">
+                    <span class="muted">Food subtotal</span>
+                    <strong>₱{{ order.subtotal|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2">
+                    <span class="muted">Delivery fee</span>
+                    <strong>₱{{ order.delivery_fee|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2">
+                    <span class="muted">Discount</span>
+                    <strong>-₱{{ order.discount|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2 border-top border-secondary mt-2">
+                    <strong>Total</strong>
+                    <strong>₱{{ order.total|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2">
+                    <span class="muted">Payment</span>
+                    <strong>{{ order.payment_method }} - {{ order.payment_status }}</strong>
+                </div>
+                {% if order.delivery_proof %}
+                    <div class="mt-3 p-3 rounded" style="background: rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25);">
+                        <strong>Delivery proof received</strong>
+                        <div class="mt-2"><a href="{{ order.delivery_proof.url }}" class="text-white">View image</a></div>
+                    </div>
+                {% endif %}
+                <a href="/receipt/{{ order.id }}/" class="btn btn-success w-100 mt-3">View Receipt</a>
+                {% if order.status == "Pending" or order.status == "Preparing" or order.status == "Ready" %}
+                    <form method="POST" action="/orders/{{ order.id }}/cancel/" class="mt-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="track">
+                        <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Cancel this order?');">Cancel Order</button>
+                    </form>
+                {% endif %}
+                {% if order.status == "Delivered" or order.status == "Completed" %}
+                    {% if not order.review %}
+                        <a href="/orders/{{ order.id }}/review/" class="btn btn-outline-light w-100 mt-2">Review Order</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="panel">
+                <h2 class="h5">Live Location</h2>
+                <p class="muted mb-2">Rider: <span id="courierText">{{ order.courier_name }}</span></p>
+                <p class="muted mb-1">Next stop: <strong id="locationText">{{ order.location_label }}</strong></p>
+                <p class="muted mb-3">Restaurant: <strong>Mark's Food Corner</strong></p>
+                <div class="map-details muted" id="routeDetails">Route follows the shortest available driving path on roads from the rider to your delivery location.</div>
+                <div class="map">
+                    <div id="mapCanvas"></div>
+                </div>
+                <p class="muted mt-3 mb-0">Last update: <span id="updatedText">{{ order.updated }}</span></p>
+                <p class="muted mt-1 mb-0">Live clock: <span id="liveClock"></span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const statusOrder = ['Pending', 'Preparing', 'Ready', 'On the way', 'Delivered', 'Completed'];
+
+function refreshTimeline(status) {
+    const current = statusOrder.indexOf(status);
+    document.querySelectorAll('.step').forEach(step => {
+        const stepIndex = statusOrder.indexOf(step.dataset.step);
+        step.classList.toggle('active', stepIndex <= current);
+    });
+}
+
+async function loadStatus() {
+    const response = await fetch('/track/{{ order.id }}/status/');
+    if (!response.ok) return;
+    const data = await response.json();
+
+    document.getElementById('statusText').textContent = data.status;
+    document.getElementById('etaText').textContent = data.estimated_minutes > 0 ? `${data.estimated_minutes} min` : 'Arrived';
+    document.getElementById('locationText').textContent = data.location;
+    document.getElementById('courierText').textContent = data.courier;
+    document.getElementById('updatedText').textContent = data.updated;
+    document.getElementById('progressBar').style.width = `${data.progress}%`;
+    updateRiderMarker(data.latitude, data.longitude);
+    refreshTimeline(data.status);
+}
+
+function tickClock() {
+    const liveClock = document.getElementById('liveClock');
+    if (liveClock) {
+        liveClock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+}
+
+function setRouteDetails(message) {
+    const routeDetails = document.getElementById('routeDetails');
+    if (routeDetails) routeDetails.textContent = message;
+}
+
+function isValidCoord(value) {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
+function normalizeRiderCoords(lat, lon) {
+    if (!isValidCoord(lat) || !isValidCoord(lon)) return null;
+
+    const isOldManilaPlaceholder = Math.abs(lat - 14.599512) < 0.0001 && Math.abs(lon - 120.984222) < 0.0001;
+    if (isOldManilaPlaceholder) {
+        return window.restaurantCoords || [9.5396111, 125.8381389];
+    }
+
+    return [lat, lon];
+}
+async function getDrivingRoute(startCoords, endCoords) {
+    const url = [
+        'https://router.project-osrm.org/route/v1/driving/',
+        startCoords[1], ',', startCoords[0], ';',
+        endCoords[1], ',', endCoords[0],
+        '?overview=full&geometries=geojson&alternatives=false&steps=false'
+    ].join('');
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Road routing service is unavailable');
+    }
+
+    const data = await response.json();
+    if (!data.routes || !data.routes.length) {
+        throw new Error('No driving route was found');
+    }
+
+    const route = data.routes[0];
+    return {
+        line: route.geometry.coordinates.map(point => [point[1], point[0]]),
+        distanceKm: route.distance / 1000,
+        durationMin: Math.round(route.duration / 60)
+    };
+}
+
+async function drawRoadRoute(startCoords, endCoords) {
+    if (!window.map || !startCoords || !endCoords) return;
+
+    const requestId = ++window.routeRequestId;
+    setRouteDetails('Finding shortest road route...');
+
+    try {
+        const route = await getDrivingRoute(startCoords, endCoords);
+        if (requestId !== window.routeRequestId) return;
+
+        if (window.routeLine) {
+            window.routeLine.remove();
+        }
+
+        window.routeLine = L.polyline(route.line, {
+            color: '#22c55e',
+            weight: 6,
+            opacity: 0.95
+        }).addTo(window.map);
+
+        window.map.fitBounds(window.routeLine.getBounds().pad(0.25));
+        setRouteDetails(`Shortest road route: ${route.distanceKm.toFixed(1)} km, about ${route.durationMin} min. The line follows roads, not open water.`);
+    } catch (error) {
+        if (requestId !== window.routeRequestId) return;
+        if (window.routeLine) {
+            window.routeLine.remove();
+            window.routeLine = null;
+        }
+        const boundsPoints = window.customerCoords ? [window.restaurantCoords, window.customerCoords, startCoords] : [window.restaurantCoords, startCoords];
+        window.map.fitBounds(L.latLngBounds(boundsPoints).pad(0.3));
+        setRouteDetails(error.message + '. No straight water-crossing line was drawn.');
+    }
+}
+
+function updateRiderMarker(lat, lon) {
+    if (!window.riderMarker || !isValidCoord(lat) || !isValidCoord(lon)) return;
+
+    const newCoords = normalizeRiderCoords(lat, lon);
+    if (!newCoords) return;
+    const newLatLng = L.latLng(newCoords[0], newCoords[1]);
+    window.riderMarker.setLatLng(newLatLng);
+
+    if (window.customerCoords) {
+        drawRoadRoute(newCoords, window.customerCoords);
+    } else {
+        drawRoadRoute(window.restaurantCoords, newCoords);
+    }
+}
+
+function initializeMap() {
+    const restaurantCoords = [9.5396111, 125.8381389];
+    const rawRiderCoords = [{{ order.rider_latitude }}, {{ order.rider_longitude }}];
+    const riderCoords = normalizeRiderCoords(rawRiderCoords[0], rawRiderCoords[1]) || restaurantCoords;
+    const customerCoords = {% if order.customer_latitude and order.customer_longitude %}[{{ order.customer_latitude }}, {{ order.customer_longitude }}]{% else %}null{% endif %};
+    window.restaurantCoords = restaurantCoords;
+    window.customerCoords = customerCoords;
+    window.routeRequestId = 0;
+    window.map = L.map('mapCanvas', { scrollWheelZoom: false }).setView(restaurantCoords, 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(window.map);
+
+    L.marker(restaurantCoords).addTo(window.map).bindPopup("Mark's Food Corner").openPopup();
+    window.riderMarker = L.circleMarker(riderCoords, {
+        radius: 9,
+        color: '#22c55e',
+        fillColor: '#22c55e',
+        fillOpacity: 0.9
+    }).addTo(window.map).bindPopup('Rider current position');
+
+    if (customerCoords) {
+        window.customerMarker = L.marker(customerCoords, {
+            icon: L.icon({
+                iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-blue.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                shadowSize: [41, 41]
+            })
+        }).addTo(window.map).bindPopup('Your delivery location');
+    }
+    const bounds = customerCoords ? L.latLngBounds([restaurantCoords, customerCoords, riderCoords]) : L.latLngBounds([restaurantCoords, riderCoords]);
+    window.map.fitBounds(bounds.pad(0.3));
+    drawRoadRoute(customerCoords ? riderCoords : restaurantCoords, customerCoords || riderCoords);
+}
+
+initializeMap();
+refreshTimeline('{{ order.status }}');
+setInterval(loadStatus, 5000);
+setInterval(tickClock, 1000);
+tickClock();
+</script>
+</body>
+</html>

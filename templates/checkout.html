@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Checkout</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background:
+                linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.94)),
+                url('https://images.unsplash.com/photo-1550547660-d9450f859349');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+        }
+        .box {
+            max-width: 620px;
+            margin: 44px auto;
+            background: #111827;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+        }
+        .payment-btn {
+            padding: 14px;
+            margin: 8px 0;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 17px;
+            border: none;
+            font-weight: 700;
+        }
+        .cash { background: #15803d; color: white; }
+        .gcash { background: #2563eb; color: white; }
+        .back { background: #475569; color: white; }
+        .subtitle, .summary-row { color: #cbd5e1; }
+        .form-control {
+            border: 1px solid #334155;
+            background: #020617;
+            color: white;
+        }
+        .form-control:focus {
+            background: #020617;
+            color: white;
+            border-color: #22c55e;
+            box-shadow: none;
+        }
+        .summary {
+            background: #020617;
+            border: 1px solid #1f2937;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .total-row {
+            border-top: 1px solid #334155;
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 20px;
+            color: #22c55e;
+        }
+        .service-option, .payment-option, .pickup-option {
+            min-width: 110px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: white;
+            background: #1f2937;
+            border: 1px solid #334155;
+        }
+        .service-option.active, .payment-option.active, .pickup-option.active {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: #020617;
+        }
+        .gcash-fields {
+            background: #020617;
+            border: 1px solid #1f2937;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .promo-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+        .promo-row .form-control {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .verify-promo-btn {
+            border: none;
+            border-radius: 10px;
+            background: #f59e0b;
+            color: #111827;
+            font-weight: 800;
+            padding: 0 14px;
+            min-width: 145px;
+        }
+        .promo-message {
+            min-height: 22px;
+            margin-top: 6px;
+            font-size: 0.92rem;
+            color: #94a3b8;
+        }
+        .promo-message.success { color: #86efac; }
+        .promo-message.error { color: #fca5a5; }
+        @media (max-width: 640px) {
+            .box { margin: 20px 12px; padding: 18px; }
+            .summary-row { flex-wrap: wrap; gap: 8px; }
+            .service-option, .payment-option, .pickup-option { width: 100%; }
+            .promo-row { flex-direction: column; }
+            .verify-promo-btn { min-height: 44px; }
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2 class="mb-2">Complete Checkout</h2>
+    <p class="subtitle">Add your delivery and payment details.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-warning">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="summary">
+        <div class="summary-row"><span>Food subtotal</span><strong>₱{{ subtotal|floatformat:2 }}</strong></div>
+        <div class="summary-row"><span>Delivery fee</span><strong id="delivery_fee_value">₱{{ delivery_fee|floatformat:2 }}</strong></div>
+        <div class="summary-row"><span>Discount</span><strong id="discount_value">-₱{{ discount|floatformat:2 }}</strong></div>
+        <div class="summary-row total-row"><span>Total</span><strong id="total_value">₱{{ total|floatformat:2 }}</strong></div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Service Type</label>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="service-option active" data-value="Delivery">Delivery</button>
+                <button type="button" class="service-option" data-value="Pickup">Pickup</button>
+                <button type="button" class="service-option" data-value="Dine In">Dine In</button>
+            </div>
+            <input type="hidden" name="service_type" id="service_type" value="Delivery">
+        </div>
+
+        <input type="text" name="contact_phone" class="form-control mb-2" placeholder="Contact number" required>
+
+        <div id="delivery_fields" class="mb-2">
+            <textarea name="delivery_address" id="delivery_address" class="form-control" rows="3" placeholder="Delivery address"></textarea>
+            <input type="hidden" name="customer_latitude" id="customer_latitude">
+            <input type="hidden" name="customer_longitude" id="customer_longitude">
+            <div class="mt-2">
+                <button type="button" class="payment-btn gcash" id="request_location_btn">Share Delivery Location</button>
+                <div class="form-text text-white-50" id="location_status">Required for accurate delivery tracking.</div>
+            </div>
+        </div>
+
+        <div id="pickup_fields" class="mb-2" style="display:none;">
+            <label class="form-label">Pickup Time</label>
+            <div class="d-flex gap-2 flex-wrap mb-2">
+                <button type="button" class="pickup-option" data-time="5-10 minutes">5-10 minutes</button>
+                <button type="button" class="pickup-option" data-time="15-20 minutes">15-20 minutes</button>
+                <button type="button" class="pickup-option" data-time="25-30 minutes">25-30 minutes</button>
+                <button type="button" class="pickup-option" data-time="custom">Custom Time</button>
+            </div>
+            <input type="hidden" name="pickup_time" id="pickup_time" value="">
+            <input type="text" id="custom_pickup_time" class="form-control" placeholder="e.g., 45 minutes, 1 hour, 2:30 PM" style="display:none;">
+        </div>
+
+        <div id="instruction_fields" class="mb-2">
+            <textarea name="special_instructions" id="special_instructions" class="form-control" rows="3" placeholder="Special request or order note"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="promo_code">Promo Code</label>
+            <div class="promo-row">
+                <input type="text" name="promo_code" id="promo_code" class="form-control" placeholder="Promo code, example MARK10">
+                <button type="button" id="verify_promo_btn" class="verify-promo-btn">Verify Promo Code</button>
+            </div>
+            <div id="promo_message" class="promo-message">Verify your promo code to preview your final total.</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Payment Method</label>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="payment-option active" data-payment="Cash">Cash</button>
+                <button type="button" class="payment-option" data-payment="GCash">GCash</button>
+            </div>
+            <input type="hidden" name="payment" id="payment_method" value="Cash">
+        </div>
+
+        <div id="gcash_fields" class="gcash-fields mb-2" style="display:none;">
+            <div class="subtitle mb-2">For GCash, enter the 13-digit reference number and upload the payment screenshot. Staff will verify it before delivery.</div>
+            <input type="text" name="payment_reference" id="payment_reference" class="form-control mb-2" placeholder="13-digit GCash reference number" inputmode="numeric" maxlength="13">
+            <input type="file" name="payment_proof" id="payment_proof" class="form-control mb-2" accept="image/*">
+        </div>
+
+        <button type="submit" class="payment-btn cash">Proceed to Payment</button>
+    </form>
+
+    <a href="/cart/" class="payment-btn back d-block mt-3 text-center text-decoration-none">Back to Cart</a>
+
+    <script>
+        const serviceButtons = document.querySelectorAll('.service-option');
+        const paymentButtons = document.querySelectorAll('.payment-option');
+        const pickupButtons = document.querySelectorAll('.pickup-option');
+        const serviceTypeInput = document.getElementById('service_type');
+        const paymentInput = document.getElementById('payment_method');
+        const deliveryFields = document.getElementById('delivery_fields');
+        const deliveryAddress = document.getElementById('delivery_address');
+        const customerLatitude = document.getElementById('customer_latitude');
+        const customerLongitude = document.getElementById('customer_longitude');
+        const requestLocationBtn = document.getElementById('request_location_btn');
+        const locationStatus = document.getElementById('location_status');
+        const pickupFields = document.getElementById('pickup_fields');
+        const pickupTimeInput = document.getElementById('pickup_time');
+        const customPickupTime = document.getElementById('custom_pickup_time');
+        const instructionField = document.getElementById('special_instructions');
+        const gcashFields = document.getElementById('gcash_fields');
+        const paymentReference = document.getElementById('payment_reference');
+        const paymentProof = document.getElementById('payment_proof');
+        const deliveryFeeValue = document.getElementById('delivery_fee_value');
+        const discountValueEl = document.getElementById('discount_value');
+        const totalValue = document.getElementById('total_value');
+        const promoInput = document.getElementById('promo_code');
+        const verifyPromoBtn = document.getElementById('verify_promo_btn');
+        const promoMessage = document.getElementById('promo_message');
+        const checkoutForm = document.querySelector('form');
+
+        const subtotalValue = parseFloat('{{ subtotal|floatformat:2 }}');
+        const deliveryFeeAmount = parseFloat('{{ delivery_fee|floatformat:2 }}');
+        let appliedDiscount = parseFloat('{{ discount|floatformat:2 }}');
+        let verifiedPromoCode = '';
+
+        function peso(value) {
+            return '₱' + Number(value).toFixed(2);
+        }
+
+        function updateDisplayedTotals() {
+            const fee = serviceTypeInput.value === 'Delivery' ? deliveryFeeAmount : 0.00;
+            const total = Math.max(0, subtotalValue + fee - appliedDiscount);
+            if (deliveryFeeValue) deliveryFeeValue.textContent = peso(fee);
+            if (discountValueEl) discountValueEl.textContent = '-' + peso(appliedDiscount);
+            if (totalValue) totalValue.textContent = peso(total);
+        }
+
+        function setPromoMessage(text, type) {
+            promoMessage.textContent = text;
+            promoMessage.classList.remove('success', 'error');
+            if (type) promoMessage.classList.add(type);
+        }
+
+        function requestCustomerLocation() {
+            if (!navigator.geolocation) {
+                locationStatus.textContent = 'Geolocation is not supported in this browser.';
+                return;
+            }
+            locationStatus.textContent = 'Requesting location...';
+            navigator.geolocation.getCurrentPosition(function(position) {
+                customerLatitude.value = position.coords.latitude.toFixed(6);
+                customerLongitude.value = position.coords.longitude.toFixed(6);
+                locationStatus.textContent = 'Location shared successfully.';
+                requestLocationBtn.textContent = 'Location shared';
+                requestLocationBtn.disabled = true;
+            }, function(error) {
+                locationStatus.textContent = 'Location permission is required for delivery tracking.';
+            }, {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            });
+        }
+
+        function updateServiceType(type) {
+            serviceTypeInput.value = type;
+            serviceButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.value === type);
+            });
+
+            if (type === 'Delivery') {
+                deliveryFields.style.display = 'block';
+                requestLocationBtn.style.display = 'inline-block';
+                pickupFields.style.display = 'none';
+                deliveryAddress.placeholder = 'Delivery address';
+                deliveryAddress.required = true;
+                pickupTimeInput.value = '';
+                customPickupTime.style.display = 'none';
+                pickupButtons.forEach(btn => btn.classList.remove('active'));
+            } else if (type === 'Pickup') {
+                deliveryFields.style.display = 'none';
+                requestLocationBtn.style.display = 'none';
+                customerLatitude.value = '';
+                customerLongitude.value = '';
+                locationStatus.textContent = 'Location is not required for pickup.';
+                pickupFields.style.display = 'block';
+                deliveryAddress.required = false;
+                deliveryAddress.value = '';
+            } else {
+                deliveryFields.style.display = 'none';
+                requestLocationBtn.style.display = 'none';
+                customerLatitude.value = '';
+                customerLongitude.value = '';
+                locationStatus.textContent = 'Location is not required for dine in.';
+                pickupFields.style.display = 'none';
+                deliveryAddress.required = false;
+                deliveryAddress.value = '';
+                pickupTimeInput.value = '';
+                customPickupTime.style.display = 'none';
+                pickupButtons.forEach(btn => btn.classList.remove('active'));
+            }
+
+            updateDisplayedTotals();
+        }
+
+        function updatePaymentMethod(type) {
+            paymentInput.value = type;
+            paymentButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.payment === type);
+            });
+            gcashFields.style.display = type === 'GCash' ? 'block' : 'none';
+            paymentReference.required = type === 'GCash';
+            paymentProof.required = type === 'GCash';
+        }
+
+        function updatePickupTime(timeValue, button) {
+            pickupButtons.forEach(btn => btn.classList.toggle('active', btn === button));
+            if (timeValue === 'custom') {
+                customPickupTime.style.display = 'block';
+                customPickupTime.focus();
+                pickupTimeInput.value = customPickupTime.value.trim();
+            } else {
+                customPickupTime.style.display = 'none';
+                customPickupTime.value = '';
+                pickupTimeInput.value = timeValue;
+            }
+        }
+
+        serviceButtons.forEach(button => {
+            button.addEventListener('click', () => updateServiceType(button.dataset.value));
+        });
+
+        paymentButtons.forEach(button => {
+            button.addEventListener('click', () => updatePaymentMethod(button.dataset.payment));
+        });
+
+        pickupButtons.forEach(button => {
+            button.addEventListener('click', () => updatePickupTime(button.dataset.time, button));
+        });
+
+        customPickupTime.addEventListener('input', () => {
+            pickupTimeInput.value = customPickupTime.value.trim();
+        });
+
+        if (requestLocationBtn) {
+            requestLocationBtn.addEventListener('click', requestCustomerLocation);
+        }
+
+        if (promoInput) {
+            promoInput.addEventListener('input', () => {
+                const code = promoInput.value.trim().toUpperCase();
+                if (code !== verifiedPromoCode) {
+                    appliedDiscount = 0;
+                    verifiedPromoCode = '';
+                    updateDisplayedTotals();
+                    setPromoMessage('Verify your promo code to preview your final total.', '');
+                }
+            });
+        }
+
+        if (verifyPromoBtn) {
+            verifyPromoBtn.addEventListener('click', async () => {
+                const code = promoInput.value.trim().toUpperCase();
+                if (!code) {
+                    appliedDiscount = 0;
+                    verifiedPromoCode = '';
+                    updateDisplayedTotals();
+                    setPromoMessage('Please enter a promo code first.', 'error');
+                    return;
+                }
+
+                verifyPromoBtn.disabled = true;
+                verifyPromoBtn.textContent = 'Checking...';
+                setPromoMessage('Checking promo code...', '');
+
+                try {
+                    const params = new URLSearchParams({
+                        code: code,
+                        service_type: serviceTypeInput.value,
+                    });
+                    const response = await fetch(`/checkout/verify-promo/?${params.toString()}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    const data = await response.json();
+                    appliedDiscount = Number(data.discount || 0);
+                    verifiedPromoCode = data.valid ? code : '';
+                    promoInput.value = data.valid && data.code ? data.code : code;
+                    updateDisplayedTotals();
+                    setPromoMessage(data.message || 'Promo code checked.', data.valid ? 'success' : 'error');
+                } catch (error) {
+                    appliedDiscount = 0;
+                    verifiedPromoCode = '';
+                    updateDisplayedTotals();
+                    setPromoMessage('Could not verify promo code right now. Please try again.', 'error');
+                } finally {
+                    verifyPromoBtn.disabled = false;
+                    verifyPromoBtn.textContent = 'Verify Promo Code';
+                }
+            });
+        }
+
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', function(event) {
+                if (serviceTypeInput.value === 'Delivery' && !customerLatitude.value && !customerLongitude.value) {
+                    event.preventDefault();
+                    alert('Please share your delivery location so the rider can track your order accurately.');
+                    return;
+                }
+
+                if (paymentInput.value === 'GCash') {
+                    const cleanReference = paymentReference.value.replace(/\D/g, '');
+                    paymentReference.value = cleanReference;
+                    if (!/^\d{13}$/.test(cleanReference)) {
+                        event.preventDefault();
+                        alert('Please enter the 13-digit GCash reference number from your receipt.');
+                        return;
+                    }
+                    if (!paymentProof.files.length) {
+                        event.preventDefault();
+                        alert('Please upload your GCash payment screenshot.');
+                    }
+                }
+            });
+        }
+
+        updateServiceType('Delivery');
+        updatePaymentMethod('Cash');
+    </script>
+</div>
+</body>
+</html>

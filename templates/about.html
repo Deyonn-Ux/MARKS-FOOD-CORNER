@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About Us | Mark's Food Corner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: #fff8ef;
+            color: #17130f;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .topbar {
+            min-height: 86px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 12px 32px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+        .brand img {
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #fff;
+        }
+        .page {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 48px 0;
+        }
+        .about-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+            gap: 38px;
+            align-items: center;
+        }
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            font-weight: 900;
+            margin-bottom: 18px;
+        }
+        .copy p {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #3f3428;
+            margin-bottom: 16px;
+        }
+        .tagline {
+            font-weight: 900;
+            color: #d97706;
+        }
+        .slider {
+            position: relative;
+            min-height: 520px;
+            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 22px 60px rgba(23, 19, 15, 0.22);
+            background: #111;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transform: translateX(36px) scale(1.02);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .slider-caption {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.72);
+            color: #fff;
+            font-weight: 800;
+        }
+        .info-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 28px;
+        }
+        .info-card {
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid #ead7c1;
+            padding: 16px;
+            box-shadow: 0 10px 28px rgba(23, 19, 15, 0.08);
+        }
+        .info-card strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #7a3c05;
+        }
+        .fb-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1877f2;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 900;
+        }
+        @media (max-width: 840px) {
+            .about-grid,
+            .info-strip {
+                grid-template-columns: 1fr;
+            }
+            .slider {
+                min-height: 380px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="topbar">
+        <a class="brand" href="/">
+            <img src="{% static 'images/marks-food-corner-logo.png' %}" alt="Mark's Food Corner logo">
+            <span>Mark's Food Corner</span>
+        </a>
+        <a class="btn btn-outline-light" href="/">Menu</a>
+    </nav>
+
+    <main class="page">
+        <section class="about-grid">
+            <div class="copy">
+                <h1>About Us</h1>
+                <p>At Mark's Food Corner, we believe that great food brings people together. Our restaurant is dedicated to serving delicious, freshly prepared meals and Filipino favorites that satisfy every craving and create memorable dining experiences.</p>
+                <p>From refreshing snacks like Halo-Halo to flavorful dishes made with quality ingredients, every item on our menu is carefully prepared to deliver the taste and comfort our customers deserve. We take pride in providing food that is not only enjoyable but also affordable for families, students, and friends.</p>
+                <p>Our commitment goes beyond serving great meals-we strive to create a warm and welcoming environment where everyone feels at home. Whether you're stopping by for a quick snack, sharing a meal with loved ones, or celebrating a special occasion, we are here to make every visit enjoyable.</p>
+                <p>Thank you for choosing Mark's Food Corner. We look forward to serving you and becoming your favorite destination for good food and great moments.</p>
+                <p class="tagline">Mark's Food Corner - Serving Happiness, One Plate at a Time.</p>
+            </div>
+
+            <div class="slider" aria-label="Food gallery">
+                {% for image in food_images %}
+                    <div class="slide {% if forloop.first %}active{% endif %}">
+                        <img src="{{ image }}" alt="Food served at Mark's Food Corner">
+                    </div>
+                {% endfor %}
+                <div class="slider-caption">Fresh Filipino favorites, snacks, and drinks</div>
+            </div>
+        </section>
+
+        <section class="info-strip">
+            <div class="info-card">
+                <strong>Address</strong>
+                Purok 3 Brgy Hayanggabon, Claver
+            </div>
+            <div class="info-card">
+                <strong>Phone</strong>
+                <a href="tel:09302648404">09302648404</a>
+            </div>
+            <div class="info-card">
+                <strong>Facebook</strong>
+                <a class="fb-icon" href="https://www.facebook.com/mark.leo.encinada" target="_blank" rel="noopener" aria-label="Open Mark's Food Corner Facebook profile">f</a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        let currentSlide = 0;
+
+        function showNextSlide() {
+            if (!slides.length) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        setInterval(showNextSlide, 3200);
+    </script>
+    {% include 'partials/site_footer.html' %}
+</body>
+</html>

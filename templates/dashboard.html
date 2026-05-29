@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .card-box, .chart-box {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 16px 38px rgba(0,0,0,0.28);
+        }
+        .big-text {
+            font-size: 36px;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .green { color: #22c55e; }
+        .blue { color: #38bdf8; }
+        .yellow { color: #facc15; }
+        .muted { color: #94a3b8; }
+        .dashboard-carousel {
+            position: relative;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding: 1rem;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 1rem 14px;
+            margin-bottom: 1.5rem;
+        }
+        .dashboard-track {
+            display: flex;
+            gap: 1rem;
+            align-items: stretch;
+            width: max-content;
+        }
+        .dashboard-slide {
+            scroll-snap-align: start;
+            flex: 0 0 90%;
+            min-width: calc(90% - 1rem);
+            box-sizing: border-box;
+            min-height: 220px;
+        }
+        @media (min-width: 768px) {
+            .dashboard-slide {
+                flex: 0 0 70%;
+                min-width: calc(70% - 1rem);
+            }
+        }
+        @media (min-width: 992px) {
+            .dashboard-slide {
+                flex: 0 0 45%;
+                min-width: calc(45% - 1rem);
+            }
+        }
+        .dashboard-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: rgba(30, 41, 59, 0.92);
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .dashboard-btn.prev { left: 10px; }
+        .dashboard-btn.next { right: 10px; }
+        .dashboard-btn:disabled { opacity: 0.35; cursor: default; }
+        .dashboard-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        .dashboard-dots button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            background: #334155;
+            cursor: pointer;
+        }
+        .dashboard-dots button.active {
+            background: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Sales Dashboard</h1>
+            <div class="muted">Business overview and active order signals.</div>
+        </div>
+        <a href="/manage-orders/" class="btn btn-success">Manage Orders</a>
+    </div>
+
+    <div class="dashboard-carousel" id="dashboardCarousel" aria-label="Dashboard metrics">
+        <div class="dashboard-track" id="dashboardTrack">
+            <div class="dashboard-slide card-box">
+                <h5>Total Sales</h5>
+                <div class="big-text green">₱{{ sales }}</div>
+            </div>
+            <div class="dashboard-slide card-box">
+                <h5>Total Orders</h5>
+                <div class="big-text blue">{{ orders }}</div>
+            </div>
+            <div class="dashboard-slide card-box">
+                <h5>Pending</h5>
+                <div class="big-text yellow">{{ pending_orders }}</div>
+            </div>
+            <div class="dashboard-slide card-box">
+                <h5>On the way</h5>
+                <div class="big-text green">{{ active_deliveries }}</div>
+            </div>
+        </div>
+        <button class="dashboard-btn prev" type="button" id="dashboardPrev" aria-label="Previous dashboard metric">‹</button>
+        <button class="dashboard-btn next" type="button" id="dashboardNext" aria-label="Next dashboard metric">›</button>
+        <div class="dashboard-dots" id="dashboardDots" aria-label="Dashboard metric controls"></div>
+    </div>
+
+    <div class="chart-box mt-4">
+        <h5 class="text-center mb-3">Sales Overview</h5>
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <a href="/" class="btn btn-secondary w-100 mt-3">Back to Menu</a>
+</div>
+
+<script>
+const ctx = document.getElementById('salesChart');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ labels|safe }},
+        datasets: [{
+            label: 'Sales',
+            data: {{ data|safe }},
+            fill: true,
+            tension: 0.4
+        }]
+    }
+});
+
+const dashboardCarousel = document.getElementById('dashboardCarousel');
+const dashboardTrack = document.getElementById('dashboardTrack');
+const dashboardSlides = Array.from(document.querySelectorAll('.dashboard-slide'));
+const dashboardPrev = document.getElementById('dashboardPrev');
+const dashboardNext = document.getElementById('dashboardNext');
+const dashboardDots = document.getElementById('dashboardDots');
+let dashboardIndex = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartScroll = 0;
+
+function buildDashboardDots() {
+    dashboardDots.innerHTML = '';
+    dashboardSlides.forEach((_, index) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = index === dashboardIndex ? 'active' : '';
+        dot.addEventListener('click', () => {
+            dashboardIndex = index;
+            scrollToDashboardIndex();
+        });
+        dashboardDots.appendChild(dot);
+    });
+}
+
+function scrollToDashboardIndex() {
+    const slide = dashboardSlides[dashboardIndex];
+    if (!slide) return;
+    slide.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    updateDashboardControls();
+}
+
+function updateDashboardControls() {
+    const dots = dashboardDots.querySelectorAll('button');
+    dots.forEach((dot, index) => dot.classList.toggle('active', index === dashboardIndex));
+    dashboardPrev.disabled = dashboardIndex === 0;
+    dashboardNext.disabled = dashboardIndex === dashboardSlides.length - 1;
+}
+
+function updateDashboardIndexFromScroll() {
+    const center = dashboardCarousel.scrollLeft + dashboardCarousel.offsetWidth / 2;
+    const nearestIndex = dashboardSlides.reduce((closest, slide, index) => {
+        const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+        const distance = Math.abs(center - slideCenter);
+        return distance < closest.distance ? { index, distance } : closest;
+    }, { index: 0, distance: Infinity }).index;
+    dashboardIndex = nearestIndex;
+    updateDashboardControls();
+}
+
+dashboardPrev.addEventListener('click', () => {
+    if (dashboardIndex > 0) {
+        dashboardIndex -= 1;
+        scrollToDashboardIndex();
+    }
+});
+
+dashboardNext.addEventListener('click', () => {
+    if (dashboardIndex < dashboardSlides.length - 1) {
+        dashboardIndex += 1;
+        scrollToDashboardIndex();
+    }
+});
+
+if (dashboardCarousel) {
+    dashboardCarousel.addEventListener('scroll', () => {
+        window.requestAnimationFrame(updateDashboardIndexFromScroll);
+    });
+
+    dashboardCarousel.addEventListener('pointerdown', event => {
+        isDragging = true;
+        dragStartX = event.clientX;
+        dragStartScroll = dashboardCarousel.scrollLeft;
+        dashboardCarousel.setPointerCapture(event.pointerId);
+        dashboardCarousel.classList.add('dragging');
+    });
+
+    dashboardCarousel.addEventListener('pointermove', event => {
+        if (!isDragging) return;
+        const deltaX = event.clientX - dragStartX;
+        dashboardCarousel.scrollLeft = dragStartScroll - deltaX;
+    });
+
+    dashboardCarousel.addEventListener('pointerup', event => {
+        if (!isDragging) return;
+        isDragging = false;
+        dashboardCarousel.releasePointerCapture(event.pointerId);
+        dashboardCarousel.classList.remove('dragging');
+        updateDashboardIndexFromScroll();
+    });
+
+    dashboardCarousel.addEventListener('pointercancel', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        dashboardCarousel.classList.remove('dragging');
+        updateDashboardIndexFromScroll();
+    });
+}
+
+buildDashboardDots();
+updateDashboardControls();
+</script>
+</body>
+</html>

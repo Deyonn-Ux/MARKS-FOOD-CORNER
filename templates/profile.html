@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+    background: #f8fafc;
+    color: #111827;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.topbar {
+    min-height: 64px;
+    background: #111;
+    border-bottom: 1px solid #333;
+}
+
+.page {
+    max-width: 980px;
+    margin: 0;
+    padding: 32px 24px 64px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.profile-picture {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #e5e7eb;
+    border: 3px solid #fff;
+    box-shadow: 0 10px 24px rgba(15,23,42,0.16);
+}
+
+.panel {
+    max-width: 620px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 12px 30px rgba(15,23,42,0.08);
+    margin-bottom: 22px;
+}
+
+.panel h4 {
+    margin-bottom: 18px;
+    font-weight: 800;
+}
+
+.form-control {
+    border-radius: 10px;
+    min-height: 46px;
+}
+
+.field-error {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+@media (max-width: 760px) {
+    .page { padding: 22px 14px 40px; }
+    .profile-header { flex-wrap: wrap; }
+    .profile-picture { width: 72px; height: 72px; }
+    .panel { padding: 18px; }
+}
+</style>
+</head>
+
+<body>
+
+<nav class="topbar d-flex align-items-center px-4">
+    <a class="navbar-brand text-white fw-bold mb-0" href="/">Mark's Food Corner</a>
+    <a href="/" class="btn btn-light btn-sm ms-auto">Return home</a>
+</nav>
+
+<main class="page">
+    <div class="profile-header">
+        {% if profile.picture %}
+            <img src="{{ profile.picture.url }}" alt="Profile picture" class="profile-picture">
+        {% else %}
+            <div class="profile-picture d-flex align-items-center justify-content-center fw-bold fs-2">
+                {{ request.user.username|first|upper }}
+            </div>
+        {% endif %}
+        <div>
+            <h2 class="mb-1">My profile</h2>
+            <div class="text-muted">{{ request.user.username }}</div>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} panel">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <section class="panel">
+        <h4>Profile</h4>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="profile">
+
+            <label class="form-label">Profile picture</label>
+            <input type="file" name="picture" accept="image/*" class="form-control mb-3">
+
+            <label class="form-label">First name</label>
+            <input type="text" name="first_name" value="{{ request.user.first_name }}" class="form-control mb-3">
+
+            <label class="form-label">Last name</label>
+            <input type="text" name="last_name" value="{{ request.user.last_name }}" class="form-control mb-3">
+
+            <label class="form-label">Email</label>
+            <input type="email" name="email" value="{{ request.user.email }}" class="form-control mb-4">
+
+            <button type="submit" class="btn btn-success">Save profile</button>
+        </form>
+    </section>
+
+    <section id="change-password" class="panel">
+        <h4>Change password</h4>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="password">
+
+            <label class="form-label" for="{{ password_form.old_password.id_for_label }}">Current password</label>
+            {{ password_form.old_password }}
+            {% for error in password_form.old_password.errors %}
+                <div class="field-error">{{ error }}</div>
+            {% endfor %}
+
+            <label class="form-label mt-3" for="{{ password_form.new_password1.id_for_label }}">New password</label>
+            {{ password_form.new_password1 }}
+            {% for error in password_form.new_password1.errors %}
+                <div class="field-error">{{ error }}</div>
+            {% endfor %}
+
+            <label class="form-label mt-3" for="{{ password_form.new_password2.id_for_label }}">Confirm new password</label>
+            {{ password_form.new_password2 }}
+            {% for error in password_form.new_password2.errors %}
+                <div class="field-error">{{ error }}</div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-dark mt-4">Change password</button>
+        </form>
+    </section>
+</main>
+
+<script>
+document.querySelectorAll("#change-password input").forEach(input => {
+    input.classList.add("form-control");
+});
+</script>
+
+</body>
+</html>

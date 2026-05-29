@@ -1,0 +1,258 @@
+{% load static %}
+{% load tz %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Delivery Order #{{ order.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background: #0b1220;
+            color: #f8fafc;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .page {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+        .panel {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 22px 46px rgba(0,0,0,0.35);
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .status-pending { background: #facc15; color: #111827; }
+        .status-preparing { background: #2563eb; color: white; }
+        .status-ready { background: #14b8a6; color: white; }
+        .status-on-the-way { background: #ef4444; color: white; }
+        .status-delivered { background: #22c55e; color: white; }
+        .status-completed { background: #0f766e; color: white; }
+        .status-cancelled { background: #475569; color: white; }
+        .muted { color: #94a3b8; }
+        .form-control, .form-select {
+            background: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 0.2rem rgba(245,158,11,0.25);
+        }
+        .map {
+            min-height: 360px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #1f2937;
+            background: #020617;
+        }
+        #mapCanvas { width: 100%; height: 360px; }
+        .route-note {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        .section-title { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: #fbbf24; }
+        @media (max-width: 960px) {
+            .grid-two { display: block; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Delivery Order #{{ order.id }}</h1>
+            <div class="muted">Customer: {{ order.customer_name }} · {{ order.contact_phone|default:'No phone' }}</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/delivery/" class="btn btn-outline-light">Back to dashboard</a>
+            <a href="/logout/" class="btn btn-warning">Logout</a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} bg-white text-dark mb-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="grid-two d-flex gap-4 flex-wrap">
+        <div class="panel flex-grow-1">
+            <div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
+                <div>
+                    <span class="section-title">Current status</span>
+                    <div class="mt-2"><span class="status-pill status-{{ order.status|slugify }}">{{ order.status }}</span></div>
+                </div>
+                <div class="text-end">
+                    <span class="section-title">ETA</span>
+                    <div class="mt-2"><strong>{{ order.estimated_minutes }} min</strong></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="section-title">Delivery address</div>
+                <p class="mt-2">{{ order.delivery_address|linebreaksbr }}</p>
+            </div>
+
+            <div class="mb-4">
+                <div class="section-title">Order items</div>
+                {% for item in items %}
+                    <div class="d-flex justify-content-between py-2 border-bottom border-slate-600">
+                        <div>
+                            <strong>{{ item.food.name }}</strong> x {{ item.quantity }}
+                            {% if item.flavor_choice %}
+                                <span class="muted">({{ item.flavor_choice }})</span>
+                            {% endif %}
+                        </div>
+                        <div>₱{{ item.subtotal|floatformat:2 }}</div>
+                    </div>
+                {% endfor %}
+                <div class="d-flex justify-content-between pt-3">
+                    <span class="muted">Subtotal</span>
+                    <strong>₱{{ order.subtotal|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2">
+                    <span class="muted">Delivery</span>
+                    <strong>₱{{ order.delivery_fee|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2">
+                    <span class="muted">Total</span>
+                    <strong>₱{{ order.total|floatformat:2 }}</strong>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="section-title">Live route</div>
+                <div class="map mt-3"><div id="mapCanvas"></div></div>
+                <div class="route-note" id="routeNote">Loading shortest available driving route on roads...</div>
+            </div>
+        </div>
+
+        <div class="panel" style="min-width:320px; max-width:420px;">
+            <div class="mb-3">
+                <div class="section-title">Delivery control</div>
+                <p class="muted mt-2">Update route, rider position, and complete the delivery when done.</p>
+            </div>
+            <form method="post" action="/delivery/{{ order.id }}/update/">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Rider name</label>
+                    <input type="text" name="courier_name" class="form-control" value="{{ order.courier_name }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        {% for code,label in order.STATUS_CHOICES %}
+                            <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Route note</label>
+                    <input type="text" name="location_label" class="form-control" value="{{ order.location_label }}">
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Rider lat</label>
+                        <input type="text" name="rider_latitude" class="form-control" value="{{ order.rider_latitude }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Rider lon</label>
+                        <input type="text" name="rider_longitude" class="form-control" value="{{ order.rider_longitude }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ETA minutes</label>
+                    <input type="number" min="0" name="estimated_minutes" class="form-control" value="{{ order.estimated_minutes }}">
+                </div>
+                <button type="submit" class="btn btn-success w-100 mb-2">Save update</button>
+                <button type="submit" name="mark_delivered" value="1" class="btn btn-warning w-100">Mark as Delivered</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const restaurantCoords = [9.5396111, 125.8381389];
+    const rawCustomerCoords = [{{ order.customer_latitude|default:'null' }}, {{ order.customer_longitude|default:'null' }}];
+    const rawRiderCoords = [{{ order.rider_latitude }}, {{ order.rider_longitude }}];
+
+    function isValidCoord(coord) {
+        return typeof coord === 'number' && Number.isFinite(coord);
+    }
+
+    function safeCoords(raw) {
+        return raw.length === 2 && isValidCoord(raw[0]) && isValidCoord(raw[1]) ? raw : null;
+    }
+
+    const customerCoords = safeCoords(rawCustomerCoords);
+    const riderCoords = safeCoords(rawRiderCoords);
+    const map = L.map('mapCanvas', { zoomControl: true }).setView(riderCoords || restaurantCoords, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    const markers = [];
+    markers.push(L.marker(restaurantCoords).addTo(map).bindPopup('Restaurant'));
+    if (customerCoords) {
+        markers.push(L.marker(customerCoords, { icon: L.icon({ iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png', iconSize: [25,41], iconAnchor: [12,41] }) }).addTo(map).bindPopup('Customer'));
+    }
+    if (riderCoords) {
+        markers.push(L.circleMarker(riderCoords, { radius: 8, color: '#f59e0b', fillColor: '#fb923c', fillOpacity: 0.9 }).addTo(map).bindPopup('Rider current position'));
+    }
+
+    const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+    const routeNote = document.getElementById('routeNote');
+    if (markers.length) map.fitBounds(bounds, { padding: [24,24] });
+
+    async function drawDrivingRoute(start, end) {
+        const routeUrl = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+        try {
+            const response = await fetch(routeUrl);
+            if (!response.ok) throw new Error('Route request failed');
+            const data = await response.json();
+            const routes = Array.isArray(data.routes) ? data.routes : [];
+            const route = routes.sort((a, b) => a.duration - b.duration)[0];
+            if (!route || !route.geometry || !Array.isArray(route.geometry.coordinates)) {
+                throw new Error('No road route found');
+            }
+
+            const roadPath = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+            L.polyline(roadPath, {
+                color: '#f59e0b',
+                weight: 5,
+                opacity: 0.9,
+                lineJoin: 'round'
+            }).addTo(map);
+            map.fitBounds(L.latLngBounds(roadPath), { padding: [28,28] });
+
+            const distanceKm = (route.distance / 1000).toFixed(1);
+            const minutes = Math.max(1, Math.round(route.duration / 60));
+            routeNote.textContent = `Road route loaded: about ${distanceKm} km, ${minutes} min.`;
+        } catch (error) {
+            routeNote.textContent = 'Could not load a road route right now. Showing customer and rider pins only.';
+        }
+    }
+
+    if (customerCoords && riderCoords) {
+        drawDrivingRoute(riderCoords, customerCoords);
+    } else if (customerCoords) {
+        drawDrivingRoute(restaurantCoords, customerCoords);
+    } else {
+        routeNote.textContent = 'No customer shared location for this order yet.';
+    }
+</script>
+</body>
+</html>

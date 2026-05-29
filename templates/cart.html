@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .receipt-box {
+            background: #111827;
+            color: white;
+            max-width: 560px;
+            margin: 40px auto;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+        }
+        .title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .line {
+            border-top: 1px dashed #64748b;
+            margin: 12px 0;
+        }
+        .item-box {
+            background: #020617;
+            border: 1px solid #1f2937;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .price {
+            float: right;
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .total-box {
+            font-size: 20px;
+            font-weight: bold;
+            color: #22c55e;
+            text-align: center;
+        }
+        .btn-custom {
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+        @media (max-width: 640px) {
+            .receipt-box { margin: 20px 12px; padding: 18px; }
+            .summary-row { flex-wrap: wrap; gap: 8px; }
+            .price { float: none; display: block; margin-top: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="receipt-box">
+    <h2 class="title">Order Summary</h2>
+    <div class="line"></div>
+
+    {% for item in cart_items %}
+        <div class="item-box">
+            <strong>{{ item.food.name }}</strong>
+            <span class="price">₱{{ item.subtotal|floatformat:2 }}</span>
+            <br>
+            <small>Quantity: {{ item.quantity }}</small>
+            {% if item.special_instructions %}
+                <div class="mt-2 text-secondary"><strong>Instructions:</strong> {{ item.special_instructions }}</div>
+            {% endif %}
+            {% if item.flavor_choice %}
+                <div class="mt-1 text-secondary"><strong>Flavor:</strong> {{ item.flavor_choice }}</div>
+            {% endif %}
+            {% if item.unavailable_action %}
+                <div class="mt-1 text-secondary"><strong>If unavailable:</strong> {{ item.unavailable_action|capfirst }}</div>
+            {% endif %}
+            <a href="/remove/{{item.food.id}}/" class="btn btn-danger btn-sm mt-2">Remove one</a>
+        </div>
+    {% empty %}
+        <p class="text-center text-secondary">Your cart is empty.</p>
+    {% endfor %}
+
+    <div class="line"></div>
+    <div class="summary-row">
+        <span>Food subtotal</span>
+        <strong>₱{{ total|floatformat:2 }}</strong>
+    </div>
+    <div class="summary-row">
+        <span>Delivery fee</span>
+        <strong>₱{{ delivery_fee|floatformat:2 }}</strong>
+    </div>
+    <div class="line"></div>
+    <div class="total-box">Total: ₱{{ grand_total|floatformat:2 }}</div>
+
+    <div class="text-center mt-3">
+        <a href="/" class="btn btn-secondary btn-custom w-100 mb-2">Back to Menu</a>
+        <button onclick="confirmCheckout({{ grand_total }})" class="btn btn-success btn-custom w-100">Proceed to Checkout</button>
+    </div>
+</div>
+
+<script>
+function confirmCheckout(total) {
+    if (total <= 0) {
+        alert("Your cart is empty. Please add food first.");
+        return;
+    }
+    if (confirm("Are you sure you want to checkout?")) {
+        window.location.href = "/recommend/";
+    }
+}
+</script>
+</body>
+</html>
