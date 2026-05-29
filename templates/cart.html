@@ -55,10 +55,69 @@
             justify-content: space-between;
             color: #cbd5e1;
         }
+        .app-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(2, 6, 23, 0.72);
+            backdrop-filter: blur(8px);
+        }
+        .app-modal-backdrop.show {
+            display: flex;
+        }
+        .app-modal {
+            width: min(420px, 100%);
+            background: #111827;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 18px;
+            box-shadow: 0 28px 80px rgba(0,0,0,0.55);
+            padding: 22px;
+            color: #f8fafc;
+        }
+        .app-modal h3 {
+            margin: 0 0 8px;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+        .app-modal p {
+            color: #cbd5e1;
+            margin-bottom: 18px;
+        }
+        .modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .toast-message {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%) translateY(16px);
+            z-index: 2100;
+            min-width: min(340px, calc(100% - 28px));
+            background: #f97316;
+            color: #111827;
+            font-weight: 800;
+            border-radius: 12px;
+            padding: 12px 14px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .toast-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
         @media (max-width: 640px) {
             .receipt-box { margin: 20px 12px; padding: 18px; }
             .summary-row { flex-wrap: wrap; gap: 8px; }
             .price { float: none; display: block; margin-top: 8px; }
+            .modal-actions { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -102,20 +161,71 @@
 
     <div class="text-center mt-3">
         <a href="/" class="btn btn-secondary btn-custom w-100 mb-2">Back to Menu</a>
-        <button onclick="confirmCheckout({{ grand_total }})" class="btn btn-success btn-custom w-100">Proceed to Checkout</button>
+        <button type="button" id="checkoutConfirmButton" data-total="{{ grand_total }}" class="btn btn-success btn-custom w-100">Proceed to Checkout</button>
     </div>
 </div>
 
+<div class="app-modal-backdrop" id="checkoutModal" aria-hidden="true">
+    <div class="app-modal" role="dialog" aria-modal="true" aria-labelledby="checkoutModalTitle">
+        <h3 id="checkoutModalTitle">Proceed to checkout?</h3>
+        <p>Review your order total before continuing to payment.</p>
+        <div class="summary-row mb-3">
+            <span>Total</span>
+            <strong>₱{{ grand_total|floatformat:2 }}</strong>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-outline-light btn-custom" id="checkoutCancelButton">Cancel</button>
+            <a href="/recommend/" class="btn btn-success btn-custom">Continue</a>
+        </div>
+    </div>
+</div>
+
+<div class="toast-message" id="cartToast">Your cart is empty. Please add food first.</div>
+
 <script>
-function confirmCheckout(total) {
-    if (total <= 0) {
-        alert("Your cart is empty. Please add food first.");
-        return;
-    }
-    if (confirm("Are you sure you want to checkout?")) {
-        window.location.href = "/recommend/";
-    }
+const checkoutButton = document.getElementById('checkoutConfirmButton');
+const checkoutModal = document.getElementById('checkoutModal');
+const checkoutCancelButton = document.getElementById('checkoutCancelButton');
+const cartToast = document.getElementById('cartToast');
+let toastTimer = null;
+
+function showToast() {
+    cartToast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => cartToast.classList.remove('show'), 2600);
 }
+
+function openCheckoutModal() {
+    checkoutModal.classList.add('show');
+    checkoutModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeCheckoutModal() {
+    checkoutModal.classList.remove('show');
+    checkoutModal.setAttribute('aria-hidden', 'true');
+}
+
+if (checkoutButton) {
+    checkoutButton.addEventListener('click', () => {
+        const total = Number(checkoutButton.dataset.total || 0);
+        if (total <= 0) {
+            showToast();
+            return;
+        }
+        openCheckoutModal();
+    });
+}
+
+if (checkoutCancelButton) checkoutCancelButton.addEventListener('click', closeCheckoutModal);
+if (checkoutModal) {
+    checkoutModal.addEventListener('click', event => {
+        if (event.target === checkoutModal) closeCheckoutModal();
+    });
+}
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeCheckoutModal();
+});
 </script>
 </body>
 </html>

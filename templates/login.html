@@ -49,6 +49,28 @@ body {
 .alert {
     border-radius:14px;
 }
+
+.password-row {
+    position: relative;
+}
+
+.password-row .form-control {
+    padding-right: 76px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 8px;
+    background: #334155;
+    color: #f8fafc;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 5px 9px;
+}
 </style>
 </head>
 
@@ -77,7 +99,10 @@ body {
 
 <div class="mb-4">
     <label class="form-label" for="password">Password</label>
-    <input id="password" type="password" name="password" placeholder="Enter your password" class="form-control" required>
+    <div class="password-row">
+        <input id="password" type="password" name="password" placeholder="Enter your password" class="form-control" required>
+        <button type="button" class="toggle-password" data-target="password">Show</button>
+    </div>
     <div class="helper-text">Make sure caps lock is off and your password is correct.</div>
 </div>
 
@@ -90,6 +115,18 @@ No account? <a href="/register/">Register</a>
 </p>
 
 </div>
+
+<script>
+document.querySelectorAll('.toggle-password').forEach(button => {
+    button.addEventListener('click', () => {
+        const input = document.getElementById(button.dataset.target);
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.textContent = show ? 'Hide' : 'Show';
+    });
+});
+</script>
 
 </body>
 </html>

@@ -621,6 +621,30 @@ def tracking_api(request, id):
 
 
 @login_required
+def order_status_feed(request):
+    if request.user.is_staff or user_is_delivery(request.user):
+        return JsonResponse({'orders': []})
+
+    orders = (
+        Order.objects
+        .filter(customer=request.user)
+        .exclude(status__in=['Completed', 'Cancelled'])
+        .order_by('-created')[:10]
+    )
+    return JsonResponse({
+        'orders': [
+            {
+                'id': order.id,
+                'status': order.status,
+                'payment_status': order.payment_status,
+                'updated': order.updated.isoformat(),
+            }
+            for order in orders
+        ]
+    })
+
+
+@login_required
 def my_orders(request):
     orders = Order.objects.filter(customer=request.user).order_by('-created')
     return render(request, 'my_orders.html', {

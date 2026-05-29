@@ -21,6 +21,7 @@ urlpatterns = [
     path('checkout/verify-promo/', views.verify_promo_code, name='verify_promo_code'),
     path('receipt/<int:id>/', views.receipt, name='receipt'),
     path('orders/', views.my_orders, name='my_orders'),
+    path('orders/status-feed/', views.order_status_feed, name='order_status_feed'),
     path('track-orders/', views.track_orders, name='track_orders'),
     path('orders/<int:id>/review/', views.review_order, name='review_order'),
     path('orders/<int:id>/cancel/', views.cancel_order, name='cancel_order'),
