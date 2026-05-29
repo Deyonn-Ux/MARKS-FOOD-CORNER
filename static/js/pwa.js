@@ -1,6 +1,7 @@
 let deferredInstallPrompt = null;
 let serviceWorkerRegistration = null;
 let orderStatusPoller = null;
+let notificationPromptRequested = false;
 
 function setInstallButtonVisible(visible) {
   const button = document.getElementById('installAppButton');
@@ -27,6 +28,7 @@ window.addEventListener('beforeinstallprompt', event => {
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   setInstallButtonVisible(false);
+  requestNotificationPermission();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,20 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const notificationButton = document.getElementById('enableNotificationsButton');
-  if (notificationButton && 'Notification' in window) {
-    notificationButton.hidden = Notification.permission === 'granted';
-    notificationButton.addEventListener('click', async () => {
-      const permission = await Notification.requestPermission();
-      notificationButton.hidden = permission === 'granted';
-      if (permission === 'granted') {
-        startOrderStatusPolling(true);
-      }
-    });
-  }
-
+  requestNotificationPermission();
+  window.addEventListener('focus', requestNotificationPermission);
+  document.addEventListener('click', requestNotificationPermission, { once: true });
+  document.addEventListener('touchend', requestNotificationPermission, { once: true });
   startOrderStatusPolling(false);
 });
+
+function isInstalledAppMode() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+async function requestNotificationPermission() {
+  if (notificationPromptRequested || !isInstalledAppMode()) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'default') {
+    if (Notification.permission === 'granted') startOrderStatusPolling(false);
+    return;
+  }
+
+  notificationPromptRequested = true;
+  const permission = await Notification.requestPermission();
+  if (permission === 'granted') {
+    startOrderStatusPolling(true);
+  }
+}
 
 function canNotify() {
   return 'Notification' in window && Notification.permission === 'granted';

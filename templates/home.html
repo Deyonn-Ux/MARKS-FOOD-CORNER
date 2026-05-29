@@ -977,8 +977,7 @@ body {
     }
 }
 
-.install-app-button,
-.enable-notifications-button {
+.install-app-button {
     position: fixed;
     right: 16px;
     bottom: calc(16px + env(safe-area-inset-bottom));
@@ -992,27 +991,15 @@ body {
     box-shadow: 0 18px 42px rgba(0,0,0,0.35);
 }
 
-.enable-notifications-button {
-    bottom: calc(68px + env(safe-area-inset-bottom));
-    background: #22c55e;
-    color: #052e16;
-}
-
-.install-app-button[hidden],
-.enable-notifications-button[hidden] {
+.install-app-button[hidden] {
     display: none;
 }
 
 @media (max-width: 480px) {
-    .install-app-button,
-    .enable-notifications-button {
+    .install-app-button {
         left: 14px;
         right: 14px;
         width: calc(100% - 28px);
-    }
-
-    .enable-notifications-button {
-        bottom: calc(68px + env(safe-area-inset-bottom));
     }
 }
 </style>
@@ -1020,7 +1007,6 @@ body {
 
 <body>
 <button type="button" id="installAppButton" class="install-app-button" hidden>Install App</button>
-<button type="button" id="enableNotificationsButton" class="enable-notifications-button" hidden>Enable Order Notifications</button>
 
 <!-- NAVBAR -->
 <nav class="navbar px-4" style="background:#111; border-bottom:1px solid #333;">
