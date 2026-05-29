@@ -2,9 +2,11 @@ import re
 import secrets
 import string
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from django.db.models import Q, Sum
-from django.http import Http404, JsonResponse
+from django.conf import settings
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.utils.timezone import localtime
@@ -41,6 +43,14 @@ class RoleLoginView(LoginView):
         if user_is_delivery(self.request.user):
             return '/delivery/'
         return '/'
+
+
+def service_worker(request):
+    service_worker_path = Path(settings.BASE_DIR) / 'static' / 'service-worker.js'
+    response = FileResponse(open(service_worker_path, 'rb'), content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache'
+    return response
 
 
 def normalize_cart(cart):

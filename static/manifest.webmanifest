@@ -1,0 +1,26 @@
+{
+  "name": "Mark's Food Corner",
+  "short_name": "Mark's Food",
+  "description": "Order food, track deliveries, and manage orders from Mark's Food Corner.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#111111",
+  "categories": ["food", "shopping"],
+  "icons": [
+    {
+      "src": "/static/images/marks-food-corner-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/marks-food-corner-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
