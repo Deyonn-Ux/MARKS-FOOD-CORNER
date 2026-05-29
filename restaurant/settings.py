@@ -12,8 +12,8 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'cloudinary_storage',  
-    'django.contrib.staticfiles',
+    'django.contrib.staticfiles',  # staticfiles first
+    'cloudinary_storage',          # then cloudinary
     'cloudinary',
     'menu',
 ]
@@ -29,8 +29,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'restaurant.urls'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 TEMPLATES = [
     {
@@ -54,18 +52,21 @@ if DATABASE_URL:
     import dj_database_url
     DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 
+# Static files - handled by WhiteNoise
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Cloudinary config
+# Media files - handled by Cloudinary
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 CSRF_TRUSTED_ORIGINS = [
     origin for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin
