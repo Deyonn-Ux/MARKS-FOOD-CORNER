@@ -1025,7 +1025,12 @@ body {
             <a href="/register/" class="btn btn-gradient btn-sm">Sign up</a>
         {% elif request.user.is_authenticated and not request.user.is_staff %}
             {% if is_delivery %}
-                <a href="/delivery/" class="btn btn-info btn-sm">Delivery Dashboard</a>
+                <a href="/delivery/" class="btn btn-info btn-sm position-relative">
+                    Delivery Dashboard
+                    {% if delivery_pending_count > 0 %}
+                        <span class="cart-badge">{{ delivery_pending_count }}</span>
+                    {% endif %}
+                </a>
             {% endif %}
             <div class="auth-menu">
                 <button type="button" id="authMenuButton" class="account-button">
@@ -1061,6 +1066,7 @@ body {
                         <span>Change password</span>
                     </a>
 
+                    {% if not is_delivery %}
                     <a href="/orders/" class="menu-link">
                         <span>🛒</span>
                         <span>My order</span>
@@ -1070,6 +1076,7 @@ body {
                         <span>📍</span>
                         <span>Track orders</span>
                     </a>
+                    {% endif %}
 
                     <div class="menu-divider"></div>
 
@@ -1134,7 +1141,7 @@ body {
                 <a class="category-pill" href="#category-{{ c.name|slugify }}">{{ c.name }}</a>
             {% endfor %}
         </nav>
-        {% if not request.user.is_staff %}
+        {% if not request.user.is_staff and not is_delivery %}
             <a href="/cart/" class="btn btn-dark btn-lg view-order-btn position-relative">
                 View Order
                 {% if cart_count > 0 %}
@@ -1185,6 +1192,7 @@ class="form-control w-50 mx-auto">
 <div class="meta-line">{{ f.preparation_minutes }} min prep</div>
 <p>{{f.description|default:"Freshly prepared Filipino favorite."}}</p>
 
+{% if not is_delivery %}
 <form action="/add/{{f.id}}/" method="POST">
 {% csrf_token %}
 
@@ -1201,6 +1209,7 @@ Sold Out
 {% endif %}
 
 </form>
+{% endif %}
 
 </div>
 </div>
@@ -1360,6 +1369,7 @@ if (quantityPlus) quantityPlus.addEventListener("click", () => {
     foodModalQuantity.value = Math.min(99, current + 1);
 });
 
+{% if not is_delivery %}
 // Card click opens modal (ignore clicks on form/button/link)
 document.querySelectorAll('.card').forEach(card => {
     card.addEventListener('click', function(event) {
@@ -1369,6 +1379,7 @@ document.querySelectorAll('.card').forEach(card => {
         openModal(card);
     });
 });
+{% endif %}
 
 if (foodModalCancel) foodModalCancel.addEventListener("click", closeModal);
 if (foodModalClose) foodModalClose.addEventListener("click", closeModal);

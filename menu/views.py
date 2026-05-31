@@ -86,9 +86,21 @@ def home(request):
     featured_categories = []
 
     is_delivery = False
+    delivery_pending_count = 0
     if request.user.is_authenticated:
         profile, created = Profile.objects.get_or_create(user=request.user)
         is_delivery = request.user.groups.filter(name='Delivery').exists()
+        if is_delivery and not request.user.is_staff:
+            request.session['cart'] = {}
+            cart = {}
+            cart_count = 0
+            delivery_pending_count = (
+                Order.objects
+                .filter(service_type='Delivery')
+                .filter(Q(payment_method='Cash') | Q(payment_status='Paid'))
+                .exclude(status__in=['Delivered', 'Completed', 'Cancelled'])
+                .count()
+            )
 
     featured_limits = {
         'meals': 5,
@@ -129,6 +141,7 @@ def home(request):
         'cart_count': cart_count,
         'profile': profile,
         'is_delivery': is_delivery,
+        'delivery_pending_count': delivery_pending_count,
     })
 
 
@@ -231,6 +244,10 @@ def profile(request):
 
 # ➕ ADD TO CART
 def add(request, id):
+    if request.user.is_authenticated and user_is_delivery(request.user) and not request.user.is_staff:
+        messages.warning(request, "Delivery rider accounts cannot place customer orders.")
+        return redirect('delivery_dashboard')
+
     food = get_object_or_404(Food, id=id)
     if not food.is_available:
         messages.warning(request, "This item is currently sold out.")
@@ -293,6 +310,10 @@ def remove_from_cart(request, id):
 
 # 🛒 CART PAGE
 def cart(request):
+    if request.user.is_authenticated and user_is_delivery(request.user) and not request.user.is_staff:
+        messages.warning(request, "Delivery rider accounts do not use the customer cart.")
+        return redirect('delivery_dashboard')
+
     cart = normalize_cart(request.session.get('cart', {}))
     request.session['cart'] = cart
 
@@ -343,6 +364,10 @@ def recommend(request):
 # 💳 CHECKOUT (PROTECTED 🔐)
 @login_required
 def checkout(request):
+    if user_is_delivery(request.user) and not request.user.is_staff:
+        messages.warning(request, "Delivery rider accounts cannot checkout customer orders.")
+        return redirect('delivery_dashboard')
+
     if request.user.is_staff:
         messages.warning(request, "Admin users cannot place orders.")
         return redirect('home')
@@ -646,6 +671,8 @@ def order_status_feed(request):
 
 @login_required
 def my_orders(request):
+    if user_is_delivery(request.user) and not request.user.is_staff:
+        return redirect('delivery_dashboard')
     orders = Order.objects.filter(customer=request.user).order_by('-created')
     return render(request, 'my_orders.html', {
         'order_history': orders,

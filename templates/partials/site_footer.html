@@ -112,8 +112,12 @@
             <section class="footer-column">
                 <h3>Useful Links</h3>
                 <p><a href="/">Home</a></p>
+                {% if is_delivery %}
+                <p><a href="/delivery/">Delivery Dashboard</a></p>
+                {% else %}
                 <p><a href="/cart/">My Order</a></p>
                 <p><a href="/orders/">Track Orders</a></p>
+                {% endif %}
                 <p><a href="/contact-us/">Contact Us</a></p>
             </section>
             <section class="footer-column">
