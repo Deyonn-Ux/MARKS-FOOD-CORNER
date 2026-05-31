@@ -38,9 +38,9 @@ class OrderAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'payment_status', 'payment_method', 'created')
     search_fields = ('id', 'customer__username', 'contact_phone', 'delivery_address')
-    readonly_fields = ('created', 'updated')
+    readonly_fields = ('created', 'updated', 'delivery_proof')
     inlines = (OrderItemInline,)
-    actions = ['mark_preparing', 'mark_ready', 'mark_on_the_way', 'mark_delivered', 'mark_completed']
+    actions = ['mark_preparing', 'mark_ready', 'mark_on_the_way', 'mark_completed']
     fieldsets = (
         ('Customer', {'fields': ('customer', 'contact_phone', 'delivery_address', 'customer_latitude', 'customer_longitude', 'delivery_note')}),
         ('Order', {'fields': ('service_type', 'pickup_time')}),

@@ -665,8 +665,14 @@ def track_orders(request):
             .exclude(status__in=['Delivered', 'Completed', 'Cancelled'])
             .order_by('-created')
         )
+        history_orders = (
+            Order.objects
+            .filter(service_type='Delivery', status__in=['Delivered', 'Completed'])
+            .order_by('-updated')[:20]
+        )
         return render(request, 'delivery_dashboard.html', {
             'orders': current_orders,
+            'history_orders': history_orders,
         })
     orders = Order.objects.filter(customer=request.user, status__in=TRACKABLE_STATUSES).order_by('-created')
     return render(request, 'track_orders.html', {
@@ -694,6 +700,9 @@ def delivery_update_order(request, id):
 
     status = request.POST.get('status')
     if status in dict(Order.STATUS_CHOICES):
+        if status == 'Delivered' and not order.delivery_proof:
+            messages.error(request, f"Order #{order.id} needs rider delivery proof before it can be marked Delivered.")
+            return redirect('manage_orders')
         order.status = status
 
     order.location_label = request.POST.get('location_label', order.location_label).strip() or order.location_label
@@ -710,8 +719,20 @@ def delivery_update_order(request, id):
     if longitude:
         order.rider_longitude = longitude
 
-    if request.POST.get('mark_delivered'):
+    delivery_proof = request.FILES.get('delivery_proof')
+    wants_delivered = request.POST.get('mark_delivered') or order.status == 'Delivered'
+
+    if wants_delivered:
+        if not delivery_proof and not order.delivery_proof:
+            messages.error(request, f"Please upload delivery proof before marking order #{order.id} as delivered.")
+            if request.POST.get('next') == 'dashboard':
+                return redirect('delivery_dashboard')
+            return redirect('delivery_order', id=order.id)
         order.status = 'Delivered'
+
+    if delivery_proof:
+        order.delivery_proof = delivery_proof
+
     order.save()
 
     messages.success(request, f"Order #{order.id} updated.")
@@ -816,9 +837,6 @@ def update_order(request, id):
         order.rider_latitude = latitude
     if longitude:
         order.rider_longitude = longitude
-
-    if request.FILES.get('delivery_proof'):
-        order.delivery_proof = request.FILES['delivery_proof']
 
     order.save()
     messages.success(request, f"Order #{order.id} updated.")

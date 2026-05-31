@@ -130,6 +130,24 @@
             color: #cbd5e1;
             font-size: 0.82rem;
         }
+        .history-section {
+            margin-top: 28px;
+        }
+        .history-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .proof-thumb {
+            width: 92px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #020617;
+        }
         @media (max-width: 900px) {
             .card-grid { grid-template-columns: 1fr; }
             .rider-stats { grid-template-columns: 1fr; }
@@ -234,13 +252,7 @@
                             <input type="hidden" name="next" value="dashboard">
                             <button type="submit" class="btn btn-primary btn-sm">ON THE WAY</button>
                         </form>
-                        <form method="post" action="/delivery/{{ order.id }}/update/" class="m-0">
-                            {% csrf_token %}
-                            <input type="hidden" name="status" value="Delivered">
-                            <input type="hidden" name="mark_delivered" value="1">
-                            <input type="hidden" name="next" value="dashboard">
-                            <button type="submit" class="btn btn-warning btn-sm">MARK DELIVERED</button>
-                        </form>
+                        <a href="/delivery/{{ order.id }}/" class="btn btn-warning btn-sm">UPLOAD PROOF</a>
                     </div>
                     <div class="customer-map-wrap" id="customerMap{{ order.id }}Wrap">
                         <div class="customer-map" id="customerMap{{ order.id }}"></div>
@@ -255,6 +267,43 @@
             <a href="/" class="btn btn-success">Back to menu</a>
         </div>
     {% endif %}
+
+    <section class="history-section">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h2 class="h4 mb-1">Delivery History</h2>
+                <p class="muted mb-0">Delivered orders and proof uploaded by the rider.</p>
+            </div>
+            <span class="badge-custom">{{ history_orders|length }} records</span>
+        </div>
+
+        {% if history_orders %}
+            {% for order in history_orders %}
+                <div class="history-card">
+                    <div class="d-flex justify-content-between gap-3 align-items-center flex-wrap">
+                        <div>
+                            <h3 class="h6 mb-1">Order #{{ order.id }} - {{ order.customer_name }}</h3>
+                            <div class="muted">{{ order.updated|localtime|date:"M d, Y, g:i a" }}</div>
+                            <div>Status: <strong>{{ order.status }}</strong></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            {% if order.delivery_proof %}
+                                <img src="{{ order.delivery_proof.url }}" alt="Delivery proof for order {{ order.id }}" class="proof-thumb">
+                                <a href="{{ order.delivery_proof.url }}" class="btn btn-outline-light btn-sm">View Proof</a>
+                            {% else %}
+                                <span class="muted">No proof uploaded</span>
+                            {% endif %}
+                            <a href="/delivery/{{ order.id }}/" class="btn btn-success btn-sm">Open</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="order-card text-center">
+                <p class="mb-0">No delivery history yet.</p>
+            </div>
+        {% endif %}
+    </section>
 </div>
 <script>
     const restaurantCoords = [9.5396111, 125.8381389];

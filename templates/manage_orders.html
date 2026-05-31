@@ -82,6 +82,14 @@
             color: #fde68a;
             font-size: 0.92rem;
         }
+        .proof-thumb {
+            width: 88px;
+            height: 68px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #020617;
+        }
     </style>
 </head>
 <body>
@@ -160,7 +168,14 @@
                 </div>
                 <div class="col-lg-3">
                     <label class="form-label">Delivery proof</label>
-                    <input name="delivery_proof" type="file" class="form-control" accept="image/*">
+                    {% if order.delivery_proof %}
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{{ order.delivery_proof.url }}" alt="Delivery proof for order {{ order.id }}" class="proof-thumb">
+                            <a href="{{ order.delivery_proof.url }}" class="btn btn-outline-light btn-sm">View</a>
+                        </div>
+                    {% else %}
+                        <div class="muted">Waiting for rider upload</div>
+                    {% endif %}
                 </div>
                 <div class="col-lg-1">
                     <a href="/track/{{ order.id }}/" class="btn btn-outline-light w-100 mb-2">View</a>
