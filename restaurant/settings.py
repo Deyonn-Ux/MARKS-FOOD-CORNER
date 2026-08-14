@@ -66,11 +66,6 @@ if DATABASE_URL:
         conn_health_checks=True,
     )
 
-    database_host = DATABASES['default'].get('HOST', '')
-    if 'render.com' in database_host and database_host.endswith('postgres.render.com'):
-        DATABASES['default'].setdefault('OPTIONS', {})
-        DATABASES['default']['OPTIONS'].setdefault('sslmode', 'require')
-
 # Static files - handled by WhiteNoise
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
