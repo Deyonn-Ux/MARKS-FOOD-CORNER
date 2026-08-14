@@ -6,7 +6,15 @@ import cloudinary
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'change-this-secret-key-before-deploy')
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+    if host.strip()
+]
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -52,7 +60,16 @@ DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DI
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     import dj_database_url
-    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    DATABASES['default'] = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=300,
+        conn_health_checks=True,
+    )
+
+    database_host = DATABASES['default'].get('HOST', '')
+    if 'render.com' in database_host and database_host.endswith('postgres.render.com'):
+        DATABASES['default'].setdefault('OPTIONS', {})
+        DATABASES['default']['OPTIONS'].setdefault('sslmode', 'require')
 
 # Static files - handled by WhiteNoise
 STATIC_URL = '/static/'

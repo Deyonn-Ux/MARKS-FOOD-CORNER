@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Environments
+.venv/
+env/
+venv/
+.Python
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+*.log
+
+# IDEs / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+*.pem
+
+# OneDrive artifacts
+~$*
